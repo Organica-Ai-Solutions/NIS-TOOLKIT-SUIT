@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/images/nistoolkit.png" alt="NIS Toolkit Logo" width="400"/>
+</div>
+
 # 🚀 NIS-TOOLKIT-SUIT
 
 **The Official SDK for Organica AI's NIS Protocol Ecosystem**
