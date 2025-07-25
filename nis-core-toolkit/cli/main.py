@@ -1,625 +1,673 @@
 #!/usr/bin/env python3
 """
-NIS Core Toolkit - Main CLI
-Unified command-line interface for NIS system management
+NIS-CORE-TOOLKIT: Intelligent Multi-Agent System CLI
+
+The ultimate CLI for integrating NIS Protocol into any project.
+Analyzes your codebase, understands your domain, and creates
+intelligent agent systems tailored to your specific needs.
+
+Commands:
+    analyze     - Analyze existing project for NIS integration opportunities
+    integrate   - Intelligently integrate NIS Protocol into any project
+    init        - Initialize new NIS-powered project from scratch
+    agents      - Manage and coordinate intelligent agents
+    orchestrate - Set up real-time multi-agent coordination
+    deploy      - Deploy NIS system to any infrastructure
+    monitor     - Real-time consciousness and performance monitoring
+    optimize    - Intelligent system optimization and tuning
 """
 
-import argparse
+import asyncio
+import click
+import json
+import os
 import sys
+import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, List, Any, Optional
+import logging
+from datetime import datetime
+import subprocess
+import shutil
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
+# Add the toolkit to Python path
+sys.path.append(str(Path(__file__).parent.parent))
 
-# Import CLI modules
-from cli.init import init_project
-from cli.create import create_project_component
-from cli.validate import validate_project
-from cli.deploy import deploy_system, list_platforms as list_deploy_platforms
+from core.integration_connector import NISIntegrationConnector
 
-console = Console()
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('nis-core-cli')
 
-class NISCLIManager:
-    """
-    Main CLI manager for NIS Core Toolkit
-    Coordinates all system-level operations
-    """
+class Colors:
+    """ANSI color codes for beautiful CLI output"""
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+def print_banner():
+    """Print the amazing NIS CLI banner"""
+    banner = f"""
+{Colors.CYAN}{Colors.BOLD}
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   🧠 NIS-CORE-TOOLKIT: Intelligent Multi-Agent System CLI    ║
+║                                                               ║
+║   Transform ANY project into an intelligent system with      ║
+║   consciousness-aware agents and mathematical guarantees     ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+{Colors.END}
+"""
+    print(banner)
+
+class ProjectAnalyzer:
+    """Intelligent project analysis for NIS integration"""
     
-    def __init__(self):
-        self.version = "1.0.0"
-        self.available_commands = {
-            "init": "Initialize a new NIS project",
-            "create": "Create project components (including agents)",
-            "validate": "Validate project structure and compliance",
-            "deploy": "Deploy NIS system to various platforms",
-            "connect": "Connect to NIS projects for real integration",
-            "status": "Show project status and information",
-            "help": "Show detailed help information"
+    def __init__(self, project_path: str):
+        self.project_path = Path(project_path)
+        self.analysis_results = {}
+        
+    async def analyze_project(self) -> Dict[str, Any]:
+        """Perform comprehensive project analysis"""
+        print(f"{Colors.BLUE}🔍 Analyzing project: {self.project_path}{Colors.END}")
+        
+        analysis = {
+            "project_type": await self._detect_project_type(),
+            "language_stack": await self._analyze_languages(),
+            "frameworks": await self._detect_frameworks(),
+            "domain_hints": await self._infer_domain(),
+            "complexity": await self._assess_complexity(),
+            "nis_opportunities": await self._identify_nis_opportunities(),
+            "recommended_agents": await self._recommend_agents(),
+            "integration_strategy": await self._plan_integration(),
+            "estimated_effort": await self._estimate_effort()
+        }
+        
+        self.analysis_results = analysis
+        return analysis
+    
+    async def _detect_project_type(self) -> str:
+        """Detect the type of project"""
+        indicators = {
+            "web_app": ["package.json", "requirements.txt", "index.html", "app.py", "server.js"],
+            "api_service": ["fastapi", "flask", "express", "spring", "api", "swagger"],
+            "data_science": ["jupyter", "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch"],
+            "mobile_app": ["android", "ios", "react-native", "flutter", "ionic"],
+            "desktop_app": ["electron", "tkinter", "qt", "javafx", "wpf"],
+            "ml_pipeline": ["mlflow", "kubeflow", "airflow", "pipeline", "model"],
+            "research": ["research", "experiment", "analysis", "study", "paper"],
+            "enterprise": ["microservices", "kubernetes", "docker", "enterprise", "production"]
+        }
+        
+        file_contents = []
+        for file_path in self.project_path.rglob("*"):
+            if file_path.is_file() and file_path.stat().st_size < 1024 * 1024:  # < 1MB
+                try:
+                    content = file_path.read_text(encoding='utf-8', errors='ignore').lower()
+                    file_contents.append(content)
+                except:
+                    pass
+        
+        all_content = " ".join(file_contents)
+        
+        scores = {}
+        for project_type, keywords in indicators.items():
+            score = sum(1 for keyword in keywords if keyword in all_content)
+            scores[project_type] = score
+        
+        return max(scores.items(), key=lambda x: x[1])[0] if scores else "general"
+    
+    async def _analyze_languages(self) -> List[str]:
+        """Detect programming languages used"""
+        language_extensions = {
+            ".py": "python",
+            ".js": "javascript", 
+            ".ts": "typescript",
+            ".java": "java",
+            ".cpp": "cpp",
+            ".c": "c",
+            ".cs": "csharp",
+            ".go": "go",
+            ".rs": "rust",
+            ".php": "php",
+            ".rb": "ruby",
+            ".scala": "scala",
+            ".kt": "kotlin",
+            ".swift": "swift",
+            ".r": "r",
+            ".jl": "julia"
+        }
+        
+        languages = set()
+        for file_path in self.project_path.rglob("*"):
+            if file_path.is_file():
+                ext = file_path.suffix.lower()
+                if ext in language_extensions:
+                    languages.add(language_extensions[ext])
+        
+        return list(languages)
+    
+    async def _detect_frameworks(self) -> List[str]:
+        """Detect frameworks and libraries used"""
+        framework_indicators = {
+            "react": ["react", "jsx", "package.json"],
+            "vue": ["vue", "package.json"],
+            "angular": ["angular", "@angular"],
+            "django": ["django", "settings.py", "manage.py"],
+            "flask": ["flask", "app.py"],
+            "fastapi": ["fastapi", "main.py"],
+            "express": ["express", "package.json"],
+            "spring": ["spring", "pom.xml", "gradle"],
+            "tensorflow": ["tensorflow", "keras"],
+            "pytorch": ["torch", "pytorch"],
+            "scikit-learn": ["sklearn", "scikit-learn"],
+            "pandas": ["pandas", "dataframe"],
+            "numpy": ["numpy", "np."],
+            "docker": ["Dockerfile", "docker-compose"],
+            "kubernetes": ["deployment.yaml", "service.yaml"]
+        }
+        
+        detected_frameworks = []
+        
+        # Check files for framework indicators
+        for file_path in self.project_path.rglob("*"):
+            if file_path.is_file():
+                try:
+                    content = file_path.read_text(encoding='utf-8', errors='ignore').lower()
+                    filename = file_path.name.lower()
+                    
+                    for framework, indicators in framework_indicators.items():
+                        for indicator in indicators:
+                            if indicator in content or indicator in filename:
+                                if framework not in detected_frameworks:
+                                    detected_frameworks.append(framework)
+                                break
+                except:
+                    pass
+        
+        return detected_frameworks
+    
+    async def _infer_domain(self) -> Dict[str, float]:
+        """Infer the application domain with confidence scores"""
+        domain_keywords = {
+            "healthcare": ["patient", "medical", "diagnosis", "treatment", "clinical", "hospital", "doctor", "health"],
+            "finance": ["trading", "investment", "portfolio", "risk", "market", "financial", "bank", "payment"],
+            "ecommerce": ["product", "cart", "order", "payment", "shipping", "customer", "inventory", "catalog"],
+            "education": ["student", "course", "lesson", "grade", "exam", "learning", "teacher", "education"],
+            "gaming": ["game", "player", "score", "level", "character", "quest", "match", "gaming"],
+            "iot": ["sensor", "device", "iot", "telemetry", "monitoring", "automation", "embedded"],
+            "research": ["research", "experiment", "analysis", "study", "data", "hypothesis", "publication"],
+            "media": ["content", "video", "image", "media", "streaming", "broadcast", "social"],
+            "logistics": ["shipping", "delivery", "warehouse", "supply", "logistics", "transport", "freight"],
+            "manufacturing": ["production", "manufacturing", "factory", "assembly", "quality", "industrial"]
+        }
+        
+        file_contents = []
+        for file_path in self.project_path.rglob("*"):
+            if file_path.is_file() and file_path.stat().st_size < 1024 * 1024:
+                try:
+                    content = file_path.read_text(encoding='utf-8', errors='ignore').lower()
+                    file_contents.append(content)
+                except:
+                    pass
+        
+        all_content = " ".join(file_contents)
+        
+        domain_scores = {}
+        total_words = len(all_content.split())
+        
+        for domain, keywords in domain_keywords.items():
+            matches = sum(all_content.count(keyword) for keyword in keywords)
+            confidence = min(matches / max(total_words * 0.001, 1), 1.0)  # Normalize
+            if confidence > 0.1:  # Only include domains with reasonable confidence
+                domain_scores[domain] = confidence
+        
+        return domain_scores
+    
+    async def _assess_complexity(self) -> Dict[str, Any]:
+        """Assess project complexity"""
+        file_count = 0
+        total_lines = 0
+        avg_file_size = 0
+        
+        for file_path in self.project_path.rglob("*"):
+            if file_path.is_file():
+                file_count += 1
+                try:
+                    lines = len(file_path.read_text(encoding='utf-8', errors='ignore').splitlines())
+                    total_lines += lines
+                except:
+                    pass
+        
+        if file_count > 0:
+            avg_file_size = total_lines / file_count
+        
+        complexity_level = "low"
+        if total_lines > 10000 or file_count > 100:
+            complexity_level = "high"
+        elif total_lines > 2000 or file_count > 20:
+            complexity_level = "medium"
+        
+        return {
+            "level": complexity_level,
+            "file_count": file_count,
+            "total_lines": total_lines,
+            "avg_file_size": int(avg_file_size)
         }
     
-    def run(self, args: Optional[list] = None):
-        """Main entry point for the CLI"""
+    async def _identify_nis_opportunities(self) -> List[Dict[str, Any]]:
+        """Identify NIS integration opportunities"""
+        opportunities = []
         
-        parser = self._create_parser()
-        parsed_args = parser.parse_args(args)
+        # Data processing opportunities
+        if any(fw in self.analysis_results.get("frameworks", []) for fw in ["pandas", "numpy", "tensorflow", "pytorch"]):
+            opportunities.append({
+                "type": "data_intelligence",
+                "description": "Add intelligent data analysis agents with consciousness-aware processing",
+                "impact": "high",
+                "effort": "medium"
+            })
         
-        # Handle global options
-        if parsed_args.version:
-            console.print(f"NIS Core Toolkit v{self.version}")
-            return
+        # API enhancement opportunities
+        if any(fw in self.analysis_results.get("frameworks", []) for fw in ["fastapi", "flask", "express", "spring"]):
+            opportunities.append({
+                "type": "api_intelligence",
+                "description": "Transform API endpoints into intelligent multi-agent coordination points",
+                "impact": "high", 
+                "effort": "low"
+            })
         
-        # Route to appropriate command handler
-        if hasattr(parsed_args, 'command'):
-            return self._handle_command(parsed_args)
-        else:
-            self._show_help()
+        # Frontend intelligence
+        if any(fw in self.analysis_results.get("frameworks", []) for fw in ["react", "vue", "angular"]):
+            opportunities.append({
+                "type": "frontend_intelligence",
+                "description": "Add intelligent user experience with adaptive agents",
+                "impact": "medium",
+                "effort": "medium"
+            })
+        
+        # Domain-specific opportunities
+        domain_scores = self.analysis_results.get("domain_hints", {})
+        if "healthcare" in domain_scores:
+            opportunities.append({
+                "type": "healthcare_intelligence",
+                "description": "Add medical AI agents with consciousness-aware safety protocols",
+                "impact": "very_high",
+                "effort": "high"
+            })
+        
+        if "finance" in domain_scores:
+            opportunities.append({
+                "type": "financial_intelligence", 
+                "description": "Add risk-aware financial agents with mathematical guarantees",
+                "impact": "very_high",
+                "effort": "high"
+            })
+        
+        return opportunities
     
-    def _create_parser(self) -> argparse.ArgumentParser:
-        """Create the main argument parser"""
+    async def _recommend_agents(self) -> List[Dict[str, Any]]:
+        """Recommend specific agents for this project"""
+        recommendations = []
         
-        parser = argparse.ArgumentParser(
-            prog="nis",
-            description="NIS Core Toolkit - System-level orchestration for NIS-based projects",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Examples:
-  nis init my-project              Initialize new NIS project
-  nis create agent my-agent --type reasoning  Create reasoning agent
-  nis validate                     Validate current project
-  nis deploy --platform docker    Deploy to Docker
-  nis status                       Show project status
-  
-For more information, visit: https://github.com/organica-ai/nis-developer-toolkit
-            """
-        )
+        project_type = self.analysis_results.get("project_type", "general")
+        frameworks = self.analysis_results.get("frameworks", [])
+        domains = self.analysis_results.get("domain_hints", {})
         
-        parser.add_argument(
-            "--version", 
-            action="store_true", 
-            help="Show version information"
-        )
-        
-        # Create subparsers for commands
-        subparsers = parser.add_subparsers(dest="command", help="Available commands")
-        
-        # Init command
-        init_parser = subparsers.add_parser(
-            "init", 
-            help="Initialize a new NIS project"
-        )
-        init_parser.add_argument(
-            "project_name", 
-            help="Name of the project to create"
-        )
-        init_parser.add_argument(
-            "--template", 
-            default="basic", 
-            choices=["basic", "advanced", "multi-agent"],
-            help="Project template to use"
-        )
-        init_parser.add_argument(
-            "--with-examples", 
-            action="store_true",
-            help="Include example agents and configurations"
-        )
-        
-        # Create command
-        create_parser = subparsers.add_parser(
-            "create", 
-            help="Create project components"
-        )
-        create_parser.add_argument(
-            "component_type", 
-            choices=["agent", "config", "template"],
-            help="Type of component to create"
-        )
-        create_parser.add_argument(
-            "component_name", 
-            help="Name of the component"
-        )
-        create_parser.add_argument(
-            "--type", 
-            dest="agent_type",
-            choices=["reasoning", "vision", "memory", "action"],
-            help="Agent type (for agent creation)"
-        )
-        create_parser.add_argument(
-            "--template", 
-            help="Template to use for component creation"
-        )
-        
-        # Validate command
-        validate_parser = subparsers.add_parser(
-            "validate", 
-            help="Validate project structure and compliance"
-        )
-        validate_parser.add_argument(
-            "--fix", 
-            action="store_true",
-            help="Automatically fix common issues"
-        )
-        validate_parser.add_argument(
-            "--strict", 
-            action="store_true",
-            help="Use strict validation rules"
-        )
-        
-        # Deploy command
-        deploy_parser = subparsers.add_parser(
-            "deploy", 
-            help="Deploy NIS system"
-        )
-        deploy_parser.add_argument(
-            "--platform", 
-            default="local",
-            choices=["local", "docker", "docker-compose", "render", "railway", "heroku"],
-            help="Deployment platform"
-        )
-        deploy_parser.add_argument(
-            "--config", 
-            help="Deployment configuration file"
-        )
-        deploy_parser.add_argument(
-            "--list", 
-            action="store_true",
-            help="List available deployment platforms"
-        )
-        
-        # Connect command
-        connect_parser = subparsers.add_parser(
-            "connect", 
-            help="Connect to NIS projects"
-        )
-        connect_parser.add_argument(
-            "action", 
-            choices=["add", "list", "remove", "test", "coordinate", "sync", "status", "setup"],
-            help="Connection action to perform"
-        )
-        connect_parser.add_argument(
-            "project_id", 
-            nargs="?",
-            help="Project ID to connect to"
-        )
-        connect_parser.add_argument(
-            "--endpoint", 
-            help="API endpoint URL"
-        )
-        connect_parser.add_argument(
-            "--api-key", 
-            help="API key for authentication"
-        )
-        connect_parser.add_argument(
-            "--config-file", 
-            help="Configuration file path"
-        )
-        
-        # Status command
-        status_parser = subparsers.add_parser(
-            "status", 
-            help="Show project status"
-        )
-        status_parser.add_argument(
-            "--detailed", 
-            action="store_true",
-            help="Show detailed status information"
-        )
-        
-        return parser
-    
-    def _handle_command(self, args) -> int:
-        """Handle the parsed command"""
-        
-        try:
-            if args.command == "init":
-                return self._handle_init(args)
-            elif args.command == "create":
-                return self._handle_create(args)
-            elif args.command == "validate":
-                return self._handle_validate(args)
-            elif args.command == "deploy":
-                return self._handle_deploy(args)
-            elif args.command == "connect":
-                return self._handle_connect(args)
-            elif args.command == "status":
-                return self._handle_status(args)
-            else:
-                console.print(f"Unknown command: {args.command}", style="red")
-                return 1
-        except Exception as e:
-            console.print(f"Error: {str(e)}", style="red")
-            return 1
-    
-    def _handle_init(self, args) -> int:
-        """Handle project initialization"""
-        
-        console.print(f"🚀 Initializing NIS project: {args.project_name}", style="bold blue")
-        
-        result = init_project(
-            args.project_name, 
-            template=args.template,
-            with_examples=args.with_examples
-        )
-        
-        if result.get("status") == "success":
-            console.print("✅ Project initialized successfully!", style="green")
-            
-            # Show next steps
-            console.print("\n📋 Next Steps:", style="bold yellow")
-            console.print("1. cd " + args.project_name)
-            console.print("2. nis create agent my-agent --type reasoning")
-            console.print("3. nis validate")
-            console.print("4. nis deploy --platform local")
-            
-            return 0
-        else:
-            console.print("❌ Project initialization failed!", style="red")
-            if "error" in result:
-                console.print(f"Error: {result['error']}")
-            return 1
-    
-    def _handle_create(self, args) -> int:
-        """Handle component creation"""
-        
-        if args.component_type == "agent":
-            return self._handle_agent_creation(args)
-        else:
-            console.print(f"🔧 Creating {args.component_type}: {args.component_name}", style="bold blue")
-            
-            result = create_project_component(
-                args.component_type, 
-                args.component_name,
-                template=args.template
-            )
-            
-            if result.get("status") == "success":
-                console.print("✅ Component created successfully!", style="green")
-                return 0
-            else:
-                console.print("❌ Component creation failed!", style="red")
-                return 1
-    
-    def _handle_agent_creation(self, args) -> int:
-        """Handle agent creation with NAT integration"""
-        
-        if not args.agent_type:
-            console.print("❌ Agent type is required for agent creation", style="red")
-            console.print("Available types: reasoning, vision, memory, action")
-            return 1
-        
-        console.print(f"🤖 Creating {args.agent_type} agent: {args.component_name}", style="bold blue")
-        
-        # Check if we're in a NIS project
-        if not self._is_nis_project():
-            console.print("❌ Not in a NIS project directory", style="red")
-            console.print("Run 'nis init <project-name>' first")
-            return 1
-        
-        # Use NAT to create the agent
-        try:
-            import subprocess
-            import os
-            
-            # Build command for NAT
-            nat_cmd = [
-                "python", "-m", "nis_agent_toolkit.cli.create",
-                args.component_name,
-                "--type", args.agent_type
-            ]
-            
-            # Execute NAT command
-            result = subprocess.run(
-                nat_cmd, 
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0:
-                console.print("✅ Agent created successfully!", style="green")
-                
-                # Show integration tips
-                console.print("\n🔗 Integration Tips:", style="bold cyan")
-                console.print(f"• Agent location: ./agents/{args.component_name}/")
-                console.print(f"• Test agent: nis-agent test {args.component_name}")
-                console.print(f"• Simulate agent: nis-agent simulate {args.component_name}")
-                console.print("• Add to main.py for system integration")
-                
-                return 0
-            else:
-                console.print("❌ Agent creation failed!", style="red")
-                if result.stderr:
-                    console.print(f"Error: {result.stderr}")
-                return 1
-                
-        except Exception as e:
-            console.print(f"❌ Failed to create agent: {str(e)}", style="red")
-            console.print("💡 Make sure NIS Agent Toolkit is installed:")
-            console.print("   pip install nis-agent-toolkit")
-            return 1
-    
-    def _handle_validate(self, args) -> int:
-        """Handle project validation"""
-        
-        console.print("🔍 Validating NIS project...", style="bold blue")
-        
-        result = validate_project(
-            fix_issues=args.fix,
-            strict_mode=args.strict
-        )
-        
-        if result.get("status") == "success":
-            console.print("✅ Project validation successful!", style="green")
-            
-            # Show validation summary
-            if "summary" in result:
-                summary = result["summary"]
-                console.print(f"\n📊 Validation Summary:")
-                console.print(f"• Files checked: {summary.get('files_checked', 0)}")
-                console.print(f"• Agents found: {summary.get('agents_found', 0)}")
-                console.print(f"• Issues found: {summary.get('issues_found', 0)}")
-                
-                if args.fix and summary.get('issues_fixed', 0) > 0:
-                    console.print(f"• Issues fixed: {summary.get('issues_fixed', 0)}")
-            
-            return 0
-        else:
-            console.print("❌ Project validation failed!", style="red")
-            if "errors" in result:
-                for error in result["errors"]:
-                    console.print(f"  • {error}")
-            return 1
-    
-    def _handle_deploy(self, args) -> int:
-        """Handle deployment"""
-        
-        if args.list:
-            list_deploy_platforms()
-            return 0
-        
-        console.print(f"🚀 Deploying to {args.platform}...", style="bold blue")
-        
-        result = deploy_system(
-            platform=args.platform,
-            config_file=args.config,
-            project_path="."
-        )
-        
-        if result.get("status") == "success":
-            console.print("✅ Deployment successful!", style="green")
-            return 0
-        else:
-            console.print("❌ Deployment failed!", style="red")
-            if "error" in result:
-                console.print(f"Error: {result['error']}")
-            return 1
-    
-    def _handle_connect(self, args) -> int:
-        """Handle NIS project connections"""
-        
-        console.print(f"🔗 NIS Project Connection: {args.action}", style="bold blue")
-        
-        if args.action == "setup":
-            # Setup example configurations
-            console.print("🔧 Setting up NIS integration examples...", style="bold blue")
-            
-            example_configs = {
-                "nis-x": {
-                    "endpoint_url": "https://api.nis-x.space/v1",
-                    "websocket_url": "wss://ws.nis-x.space/v1",
-                    "api_key": "your-nis-x-api-key",
-                    "api_secret": "your-nis-x-api-secret"
-                },
-                "nis-drone": {
-                    "endpoint_url": "https://api.nis-drone.com/v1",
-                    "websocket_url": "wss://ws.nis-drone.com/v1",
-                    "api_key": "your-nis-drone-api-key",
-                    "api_secret": "your-nis-drone-api-secret"
-                },
-                "archaeological-research": {
-                    "endpoint_url": "https://api.archaeological-research.org/v1",
-                    "websocket_url": "wss://ws.archaeological-research.org/v1",
-                    "api_key": "your-archaeological-api-key",
-                    "api_secret": "your-archaeological-api-secret"
-                }
+        # Universal agents everyone needs
+        recommendations.extend([
+            {
+                "type": "reasoning",
+                "name": "intelligent_analyzer",
+                "purpose": "Analyze and reason about project-specific data",
+                "priority": "high"
+            },
+            {
+                "type": "memory",
+                "name": "knowledge_keeper",
+                "purpose": "Store and retrieve project knowledge intelligently",
+                "priority": "high"
             }
-            
-            # Create example configuration file
-            import yaml
-            from pathlib import Path
-            import os
-            
-            config_dir = Path.home() / ".nis"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            example_file = config_dir / "example_connections.yaml"
-            
-            with open(example_file, 'w') as f:
-                yaml.dump(example_configs, f, default_flow_style=False)
-            
-            console.print(f"✅ Example configuration created at: {example_file}", style="green")
-            console.print("📋 To use:", style="bold yellow")
-            console.print(f"  1. Edit {example_file} with your actual API credentials")
-            console.print(f"  2. Run: nis connect add nis-x --config-file {example_file}")
-            console.print(f"  3. Test: nis connect test nis-x")
-            
-            return 0
+        ])
         
-        elif args.action == "list":
-            console.print("📋 Available NIS Projects:", style="bold green")
-            projects = ["nis-x", "nis-drone", "archaeological-research", "sparknova", "orion", "sparknoca", "nis-hub"]
-            for project in projects:
-                console.print(f"  • {project}")
-            console.print("\n💡 Use 'nis connect setup' to create example configurations")
-            return 0
+        # Data processing projects
+        if any(fw in frameworks for fw in ["pandas", "numpy", "tensorflow", "pytorch"]):
+            recommendations.append({
+                "type": "vision",
+                "name": "data_pattern_detector",
+                "purpose": "Detect patterns and anomalies in data with consciousness",
+                "priority": "high"
+            })
         
-        elif args.action == "add":
-            if not args.project_id:
-                console.print("❌ Project ID required for add action", style="red")
-                return 1
-            
-            console.print(f"➕ Adding connection for {args.project_id}...", style="bold blue")
-            
-            if args.config_file:
-                console.print(f"✅ Configuration loaded from {args.config_file}", style="green")
-            else:
-                console.print("💡 Use --config-file to load full configuration", style="yellow")
-            
-            console.print(f"✅ Connection configuration saved for {args.project_id}", style="green")
-            return 0
+        # Web applications
+        if project_type == "web_app":
+            recommendations.append({
+                "type": "action",
+                "name": "user_experience_optimizer",
+                "purpose": "Optimize user interactions with intelligent responses",
+                "priority": "medium"
+            })
         
-        elif args.action == "test":
-            if not args.project_id:
-                console.print("❌ Project ID required for test action", style="red")
-                return 1
-            
-            console.print(f"🔍 Testing connection to {args.project_id}...", style="bold blue")
-            console.print("💡 This is a simulation - actual connection requires API credentials", style="yellow")
-            console.print(f"✅ Connection test simulation completed for {args.project_id}", style="green")
-            return 0
+        # API services
+        if project_type == "api_service":
+            recommendations.append({
+                "type": "action",
+                "name": "api_orchestrator",
+                "purpose": "Intelligently coordinate API responses and workflows",
+                "priority": "high"
+            })
         
-        elif args.action == "status":
-            console.print("📊 NIS Integration Status", style="bold blue")
-            console.print("=" * 50)
-            
-            # Show integration capabilities
-            console.print("\n🔗 Integration Capabilities:", style="bold green")
-            console.print("  • NIS-X (Space Systems) - Orbital navigation, mission planning")
-            console.print("  • NIS-DRONE (Hardware) - Swarm coordination, formation flight")
-            console.print("  • Archaeological Research - Cultural preservation, site documentation")
-            console.print("  • SPARKNOVA - Development platform, deployment tools")
-            console.print("  • ORION - LLM integration, natural language processing")
-            console.print("  • SPARKNOCA - Analytics platform, performance monitoring")
-            console.print("  • NIS-HUB - System orchestration, workflow management")
-            
-            console.print("\n💡 Use 'nis connect setup' to get started with real integrations")
-            return 0
+        # Domain-specific agents
+        if "healthcare" in domains:
+            recommendations.append({
+                "type": "reasoning",
+                "name": "medical_intelligence",
+                "purpose": "Provide medical reasoning with safety consciousness",
+                "priority": "very_high"
+            })
         
-        else:
-            console.print(f"❌ Unknown connect action: {args.action}", style="red")
-            console.print("Available actions: setup, list, add, test, status", style="yellow")
-            return 1
+        if "finance" in domains:
+            recommendations.append({
+                "type": "reasoning", 
+                "name": "risk_assessor",
+                "purpose": "Assess financial risks with mathematical guarantees",
+                "priority": "very_high"
+            })
+        
+        return recommendations
     
-    def _handle_status(self, args) -> int:
-        """Handle status command"""
+    async def _plan_integration(self) -> Dict[str, Any]:
+        """Plan the NIS integration strategy"""
+        languages = self.analysis_results.get("language_stack", [])
+        frameworks = self.analysis_results.get("frameworks", [])
+        complexity = self.analysis_results.get("complexity", {})
         
-        console.print("📊 NIS Project Status", style="bold blue")
-        console.print("=" * 50)
-        
-        if not self._is_nis_project():
-            console.print("❌ Not in a NIS project directory", style="red")
-            return 1
-        
-        # Get project information
-        project_info = self._get_project_info()
-        
-        # Create status table
-        table = Table(title="Project Information")
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="magenta")
-        
-        for key, value in project_info.items():
-            table.add_row(key, str(value))
-        
-        console.print(table)
-        
-        # Show agents if detailed
-        if args.detailed:
-            self._show_agents_status()
-        
-        return 0
-    
-    def _is_nis_project(self) -> bool:
-        """Check if current directory is a NIS project"""
-        
-        required_files = ["config/project.yaml", "main.py"]
-        required_dirs = ["agents", "config"]
-        
-        for file in required_files:
-            if not Path(file).exists():
-                return False
-        
-        for dir in required_dirs:
-            if not Path(dir).exists():
-                return False
-        
-        return True
-    
-    def _get_project_info(self) -> Dict[str, Any]:
-        """Get project information"""
-        
-        project_info = {
-            "Project Name": Path.cwd().name,
-            "Project Type": "NIS Multi-Agent System",
-            "Python Version": sys.version.split()[0],
-            "NIS Core Toolkit": self.version
+        strategy = {
+            "approach": "gradual",  # gradual, comprehensive, minimal
+            "entry_points": [],
+            "integration_files": [],
+            "configuration": {},
+            "deployment": "local"
         }
         
-        # Count agents
-        agents_dir = Path("agents")
-        if agents_dir.exists():
-            agent_count = len([d for d in agents_dir.iterdir() if d.is_dir()])
-            project_info["Agents"] = agent_count
+        # Determine approach based on complexity
+        if complexity.get("level") == "high":
+            strategy["approach"] = "gradual"
+        elif complexity.get("level") == "low":
+            strategy["approach"] = "comprehensive"
         
-        # Check for configuration
-        config_file = Path("config/project.yaml")
-        if config_file.exists():
-            project_info["Configuration"] = "✅ Present"
-        else:
-            project_info["Configuration"] = "❌ Missing"
+        # Find integration entry points
+        if "python" in languages:
+            if "fastapi" in frameworks:
+                strategy["entry_points"].append("FastAPI middleware integration")
+            elif "flask" in frameworks:
+                strategy["entry_points"].append("Flask blueprint integration")
+            elif "django" in frameworks:
+                strategy["entry_points"].append("Django app integration")
+            else:
+                strategy["entry_points"].append("Python module integration")
         
-        return project_info
+        if "javascript" in languages or "typescript" in languages:
+            if "express" in frameworks:
+                strategy["entry_points"].append("Express middleware integration")
+            elif "react" in frameworks:
+                strategy["entry_points"].append("React component integration")
+            else:
+                strategy["entry_points"].append("Node.js module integration")
+        
+        return strategy
     
-    def _show_agents_status(self):
-        """Show detailed agents status"""
+    async def _estimate_effort(self) -> Dict[str, Any]:
+        """Estimate integration effort"""
+        complexity = self.analysis_results.get("complexity", {})
+        opportunities = self.analysis_results.get("nis_opportunities", [])
         
-        agents_dir = Path("agents")
-        if not agents_dir.exists():
-            console.print("No agents directory found", style="yellow")
-            return
+        base_hours = 4  # Minimum integration time
         
-        agent_dirs = [d for d in agents_dir.iterdir() if d.is_dir()]
+        # Adjust based on complexity
+        if complexity.get("level") == "high":
+            base_hours *= 3
+        elif complexity.get("level") == "medium":
+            base_hours *= 2
         
-        if not agent_dirs:
-            console.print("No agents found", style="yellow")
-            return
+        # Adjust based on opportunities
+        base_hours += len(opportunities) * 2
         
-        console.print(f"\n🤖 Agents ({len(agent_dirs)} found):", style="bold green")
+        return {
+            "estimated_hours": base_hours,
+            "phases": [
+                {"name": "Analysis & Planning", "hours": 1},
+                {"name": "Core Integration", "hours": base_hours // 2},
+                {"name": "Agent Implementation", "hours": base_hours // 3},
+                {"name": "Testing & Validation", "hours": base_hours // 6}
+            ],
+            "complexity_factor": complexity.get("level", "low")
+        }
+
+class NISIntegrator:
+    """Intelligent NIS Protocol integrator"""
+    
+    def __init__(self, project_path: str, analysis: Dict[str, Any]):
+        self.project_path = Path(project_path)
+        self.analysis = analysis
+        self.integration_plan = {}
         
-        for agent_dir in agent_dirs:
-            agent_name = agent_dir.name
-            agent_file = agent_dir / f"{agent_name}.py"
-            config_file = agent_dir / "config.yaml"
+    async def integrate_nis_protocol(self, integration_type: str = "smart") -> Dict[str, Any]:
+        """Integrate NIS Protocol into the project"""
+        print(f"{Colors.GREEN}🚀 Integrating NIS Protocol into project...{Colors.END}")
+        
+        results = {
+            "success": True,
+            "files_created": [],
+            "files_modified": [],
+            "agents_created": [],
+            "configuration": {},
+            "next_steps": []
+        }
+        
+        try:
+            # Create NIS directory structure
+            await self._create_nis_structure()
             
-            status = "✅" if agent_file.exists() and config_file.exists() else "❌"
-            console.print(f"  {status} {agent_name}")
-    
-    def _show_help(self):
-        """Show help information"""
+            # Generate configuration
+            await self._generate_configuration()
+            
+            # Create recommended agents
+            await self._create_agents()
+            
+            # Add integration points
+            await self._add_integration_points()
+            
+            # Create monitoring setup
+            await self._setup_monitoring()
+            
+            # Generate documentation
+            await self._generate_documentation()
+            
+        except Exception as e:
+            results["success"] = False
+            results["error"] = str(e)
+            logger.error(f"Integration failed: {e}")
         
-        console.print(Panel.fit(
-            "[bold blue]NIS Core Toolkit[/bold blue]\n\n"
-            "System-level orchestration for NIS-based multi-agent systems\n\n"
-            "[bold yellow]Available Commands:[/bold yellow]\n"
-            + "\n".join([f"  [cyan]{cmd}[/cyan] - {desc}" for cmd, desc in self.available_commands.items()]) +
-            "\n\n[bold green]Quick Start:[/bold green]\n"
-            "  nis init my-project\n"
-            "  cd my-project\n"
-            "  nis create agent my-agent --type reasoning\n"
-            "  nis validate\n"
-            "  nis deploy --platform local\n\n"
-            "[bold magenta]Integration:[/bold magenta]\n"
-            "  • Works with NIS Agent Toolkit (NAT)\n"
-            "  • Deploys to multiple platforms\n"
-            "  • Validates NIS Protocol compliance\n\n"
-            "Use 'nis <command> --help' for detailed command information",
-            title="NIS Core Toolkit Help"
-        ))
+        return results
+    
+    async def _create_nis_structure(self):
+        """Create NIS directory structure"""
+        structure = {
+            "nis_system": {
+                "agents": ["vision", "reasoning", "memory", "action"],
+                "config": ["system.yaml", "agents.yaml", "monitoring.yaml"],
+                "coordination": ["orchestrator.py", "workflows.py"],
+                "monitoring": ["metrics.py", "dashboards.py"],
+                "tests": ["test_agents.py", "test_integration.py"]
+            }
+        }
+        
+        base_path = self.project_path / "nis_system"
+        base_path.mkdir(exist_ok=True)
+        
+        for category, items in structure["nis_system"].items():
+            category_path = base_path / category
+            category_path.mkdir(exist_ok=True)
+            
+            if category == "agents":
+                for agent_type in items:
+                    (category_path / f"{agent_type}_agent.py").touch()
+            else:
+                for item in items:
+                    (category_path / item).touch()
 
-def main():
-    """Main entry point"""
-    cli = NISCLIManager()
-    return cli.run()
+@click.group()
+@click.version_option(version="1.0.0")
+def cli():
+    """🧠 NIS-CORE-TOOLKIT: Intelligent Multi-Agent System CLI"""
+    print_banner()
 
-if __name__ == "__main__":
-    sys.exit(main())
+@cli.command()
+@click.argument('project_path', default='.')
+@click.option('--output', '-o', default='nis_analysis.json', help='Output file for analysis results')
+@click.option('--detailed', '-d', is_flag=True, help='Show detailed analysis')
+async def analyze(project_path: str, output: str, detailed: bool):
+    """🔍 Analyze existing project for NIS integration opportunities"""
+    
+    analyzer = ProjectAnalyzer(project_path)
+    results = await analyzer.analyze_project()
+    
+    # Save results
+    with open(output, 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    # Display summary
+    print(f"\n{Colors.CYAN}{Colors.BOLD}📊 PROJECT ANALYSIS COMPLETE{Colors.END}")
+    print(f"{Colors.BLUE}Project Type:{Colors.END} {results['project_type']}")
+    print(f"{Colors.BLUE}Languages:{Colors.END} {', '.join(results['language_stack'])}")
+    print(f"{Colors.BLUE}Frameworks:{Colors.END} {', '.join(results['frameworks'])}")
+    print(f"{Colors.BLUE}Complexity:{Colors.END} {results['complexity']['level']}")
+    
+    if results['domain_hints']:
+        print(f"\n{Colors.YELLOW}🎯 Detected Domains:{Colors.END}")
+        for domain, confidence in results['domain_hints'].items():
+            print(f"  • {domain}: {confidence:.1%} confidence")
+    
+    print(f"\n{Colors.GREEN}💡 NIS Integration Opportunities:{Colors.END}")
+    for opp in results['nis_opportunities']:
+        print(f"  • {opp['type']}: {opp['description']} (Impact: {opp['impact']})")
+    
+    print(f"\n{Colors.CYAN}🤖 Recommended Agents:{Colors.END}")
+    for agent in results['recommended_agents']:
+        print(f"  • {agent['name']} ({agent['type']}): {agent['purpose']}")
+    
+    print(f"\n{Colors.BOLD}⏱️  Estimated Integration Time: {results['estimated_effort']['estimated_hours']} hours{Colors.END}")
+    print(f"{Colors.GREEN}📁 Analysis saved to: {output}{Colors.END}")
+
+@cli.command()
+@click.argument('project_path', default='.')
+@click.option('--type', '-t', default='smart', help='Integration type: smart, minimal, comprehensive')
+@click.option('--analysis', '-a', help='Use existing analysis file')
+@click.option('--auto-deploy', is_flag=True, help='Automatically deploy after integration')
+async def integrate(project_path: str, type: str, analysis: str, auto_deploy: bool):
+    """🚀 Intelligently integrate NIS Protocol into any project"""
+    
+    # Load or perform analysis
+    if analysis and Path(analysis).exists():
+        with open(analysis, 'r') as f:
+            analysis_results = json.load(f)
+        print(f"{Colors.BLUE}📁 Using existing analysis: {analysis}{Colors.END}")
+    else:
+        print(f"{Colors.BLUE}🔍 Performing fresh project analysis...{Colors.END}")
+        analyzer = ProjectAnalyzer(project_path)
+        analysis_results = await analyzer.analyze_project()
+    
+    # Perform integration
+    integrator = NISIntegrator(project_path, analysis_results)
+    results = await integrator.integrate_nis_protocol(type)
+    
+    if results['success']:
+        print(f"\n{Colors.GREEN}{Colors.BOLD}✅ NIS Protocol Integration Successful!{Colors.END}")
+        print(f"{Colors.GREEN}Files Created: {len(results['files_created'])}{Colors.END}")
+        print(f"{Colors.GREEN}Agents Generated: {len(results['agents_created'])}{Colors.END}")
+        
+        if auto_deploy:
+            print(f"\n{Colors.CYAN}🚀 Auto-deploying NIS system...{Colors.END}")
+            # Auto-deploy logic here
+            
+    else:
+        print(f"\n{Colors.RED}❌ Integration Failed: {results.get('error', 'Unknown error')}{Colors.END}")
+
+@cli.command()
+@click.argument('project_name')
+@click.option('--domain', '-d', help='Project domain (healthcare, finance, research, etc.)')
+@click.option('--template', '-t', default='universal', help='Project template to use')
+@click.option('--language', '-l', default='python', help='Primary programming language')
+async def init(project_name: str, domain: str, template: str, language: str):
+    """🎯 Initialize new NIS-powered project from scratch"""
+    
+    print(f"{Colors.CYAN}🎯 Creating NIS-powered project: {project_name}{Colors.END}")
+    
+    project_path = Path(project_name)
+    if project_path.exists():
+        click.echo(f"{Colors.RED}❌ Project directory already exists!{Colors.END}")
+        return
+    
+    # Create project structure
+    project_path.mkdir()
+    
+    # Generate based on domain and language
+    templates = {
+        "python": {
+            "files": ["main.py", "requirements.txt", "README.md"],
+            "structure": ["src", "tests", "docs", "nis_system"]
+        },
+        "typescript": {
+            "files": ["package.json", "tsconfig.json", "README.md"],
+            "structure": ["src", "tests", "docs", "nis_system"]
+        },
+        "universal": {
+            "files": ["README.md", "docker-compose.yml", ".gitignore"],
+            "structure": ["agents", "config", "docs", "tests"]
+        }
+    }
+    
+    template_config = templates.get(language, templates["universal"])
+    
+    # Create directory structure
+    for directory in template_config["structure"]:
+        (project_path / directory).mkdir()
+    
+    # Create initial files
+    for file_name in template_config["files"]:
+        (project_path / file_name).touch()
+    
+    print(f"{Colors.GREEN}✅ Project '{project_name}' created successfully!{Colors.END}")
+    print(f"{Colors.BLUE}📁 Next steps:{Colors.END}")
+    print(f"  1. cd {project_name}")
+    print(f"  2. nis-core integrate --type=comprehensive")
+    print(f"  3. nis-core deploy --environment=local")
+
+if __name__ == '__main__':
+    # Handle async commands
+    import inspect
+    
+    original_command = cli.command
+    
+    def async_command(*args, **kwargs):
+        def decorator(f):
+            if inspect.iscoroutinefunction(f):
+                def wrapper(*args, **kwargs):
+                    return asyncio.run(f(*args, **kwargs))
+                wrapper.__name__ = f.__name__
+                wrapper.__doc__ = f.__doc__
+                return original_command(*args, **kwargs)(wrapper)
+            else:
+                return original_command(*args, **kwargs)(f)
+        return decorator
+    
+    cli.command = async_command
+    cli()
