@@ -1,837 +1,1096 @@
 #!/usr/bin/env python3
 """
-NIS Core Toolkit - Consciousness Monitoring CLI
-Real-time monitoring of NIS v3.0 AGI system performance
+NIS Core Toolkit - Real-Time Monitoring System
+Comprehensive monitoring for consciousness, agent performance, and system health
 """
 
 import asyncio
 import json
 import time
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-import argparse
-import sys
+import logging
+import statistics
+from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional, Callable, Set
+from dataclasses import dataclass, field
 from pathlib import Path
+import threading
+from collections import deque, defaultdict
+from enum import Enum
+
+# Optional imports with graceful fallback
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 try:
     import websockets
-    import redis
-    from kafka import KafkaConsumer
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
-    import pandas as pd
-    MONITORING_DEPS_AVAILABLE = True
+    import json
+    WEBSOCKETS_AVAILABLE = True
 except ImportError:
-    MONITORING_DEPS_AVAILABLE = False
+    WEBSOCKETS_AVAILABLE = False
 
-# Import our consciousness interface
 try:
-    from ..templates.nis_v3_integration.consciousness_interface import NISConsciousnessInterface, ConsciousnessConfig
-    from ..templates.nis_v3_integration.kan_interface import NISKANInterface, KANConfig
+    import sqlite3
+    SQLITE_AVAILABLE = True
 except ImportError:
-    # Fallback for direct execution
-    sys.path.append(str(Path(__file__).parent.parent))
-    from templates.nis_v3_integration.consciousness_interface import NISConsciousnessInterface, ConsciousnessConfig
-    from templates.nis_v3_integration.kan_interface import NISKANInterface, KANConfig
+    SQLITE_AVAILABLE = False
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class MonitoringLevel(Enum):
+    """Monitoring depth levels"""
+    BASIC = "basic"
+    STANDARD = "standard"
+    COMPREHENSIVE = "comprehensive"
+    DEEP = "deep"
+
+class AlertSeverity(Enum):
+    """Alert severity levels"""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+@dataclass
+class SystemMetrics:
+    """System-level performance metrics"""
+    timestamp: datetime
+    cpu_usage: float
+    memory_usage: float
+    disk_usage: float
+    network_io: Dict[str, float]
+    process_count: int
+    load_average: List[float]
+    uptime: float
+
+@dataclass
+class AgentMetrics:
+    """Individual agent performance metrics"""
+    agent_id: str
+    agent_type: str
+    timestamp: datetime
+    response_time: float
+    success_rate: float
+    error_count: int
+    consciousness_score: float
+    kan_accuracy: float
+    bias_detections: int
+    coordination_efficiency: float
+    memory_usage: float
+    cpu_usage: float
+    active_tasks: int
+
+@dataclass
+class ConsciousnessMetrics:
+    """Consciousness-specific monitoring metrics"""
+    agent_id: str
+    timestamp: datetime
+    self_awareness_score: float
+    bias_detection_active: bool
+    meta_cognitive_insights: List[str]
+    attention_focus: List[str]
+    ethical_violations: int
+    uncertainty_acknowledgments: int
+    reflection_depth: float
+    consciousness_evolution: List[float]
+
+@dataclass
+class CoordinationMetrics:
+    """Multi-agent coordination metrics"""
+    timestamp: datetime
+    active_agents: int
+    coordination_requests: int
+    coordination_successes: int
+    coordination_failures: int
+    average_response_time: float
+    message_throughput: float
+    consensus_accuracy: float
+    network_efficiency: float
+
+@dataclass
+class Alert:
+    """System alert with context"""
+    alert_id: str
+    timestamp: datetime
+    severity: AlertSeverity
+    source: str
+    message: str
+    details: Dict[str, Any]
+    resolved: bool = False
+    resolution_time: Optional[datetime] = None
+
+@dataclass
+class MonitoringConfig:
+    """Monitoring system configuration"""
+    monitoring_level: MonitoringLevel = MonitoringLevel.STANDARD
+    collection_interval: float = 5.0  # seconds
+    retention_days: int = 30
+    enable_consciousness_tracking: bool = True
+    enable_real_time_alerts: bool = True
+    alert_thresholds: Dict[str, float] = field(default_factory=lambda: {
+        "cpu_usage": 80.0,
+        "memory_usage": 85.0,
+        "error_rate": 5.0,
+        "consciousness_degradation": 0.2,
+        "coordination_failure_rate": 10.0
+    })
+    dashboard_port: int = 3000
+    websocket_port: int = 3001
+    database_path: str = "nis_monitoring.db"
 
 class ConsciousnessMonitor:
     """
-    Real-time consciousness monitoring system
-    Interfaces with NIS Protocol v3.0 consciousness modules
+    Real-time consciousness monitoring for NIS agents
+    
+    Features:
+    - Real-time consciousness state tracking
+    - Bias detection monitoring
+    - Meta-cognitive insight analysis
+    - Consciousness evolution tracking
+    - Ethical violation detection
+    - Attention pattern analysis
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: MonitoringConfig):
         self.config = config
-        self.consciousness_interface = None
-        self.kan_interface = None
-        self.monitoring_data = []
-        self.active_connections = {}
-        self.alert_thresholds = {
-            "consciousness_health": 0.6,
-            "cognitive_load": 0.8,
-            "bias_detection_rate": 0.2,
-            "kan_interpretability": 0.85
-        }
-        self.is_monitoring = False
+        self.consciousness_history = defaultdict(deque)
+        self.bias_patterns = defaultdict(list)
+        self.ethical_violations = defaultdict(list)
+        self.attention_patterns = defaultdict(list)
+        self.meta_insights = defaultdict(list)
+        self.running = False
         
-    async def start_monitoring(self, mode: str = "real_time"):
-        """Start consciousness monitoring"""
+        self.logger = logging.getLogger(f"{__name__}.ConsciousnessMonitor")
         
-        print("🧠 Starting NIS v3.0 Consciousness Monitoring...")
+    async def track_consciousness_state(self, agent_id: str, consciousness_data: Dict[str, Any]):
+        """Track consciousness state for an agent"""
         
-        # Initialize interfaces
-        await self._initialize_interfaces()
-        
-        # Start monitoring based on mode
-        if mode == "real_time":
-            await self._start_real_time_monitoring()
-        elif mode == "batch":
-            await self._start_batch_monitoring()
-        elif mode == "dashboard":
-            await self._start_dashboard_monitoring()
-        else:
-            print(f"❌ Unknown monitoring mode: {mode}")
-            return
-        
-        print("✅ Monitoring started successfully")
-    
-    async def _initialize_interfaces(self):
-        """Initialize consciousness and KAN interfaces"""
-        
-        # Initialize consciousness interface
-        consciousness_config = ConsciousnessConfig(
-            meta_cognitive_processing=True,
-            bias_detection=True,
-            self_reflection_interval=30,  # 30 seconds for monitoring
-            introspection_depth=0.8,
-            emotional_awareness=True,
-            attention_tracking=True
+        metrics = ConsciousnessMetrics(
+            agent_id=agent_id,
+            timestamp=datetime.now(),
+            self_awareness_score=consciousness_data.get("self_awareness_score", 0.0),
+            bias_detection_active=consciousness_data.get("bias_detection_active", False),
+            meta_cognitive_insights=consciousness_data.get("meta_cognitive_insights", []),
+            attention_focus=consciousness_data.get("attention_focus", []),
+            ethical_violations=consciousness_data.get("ethical_violations", 0),
+            uncertainty_acknowledgments=consciousness_data.get("uncertainty_acknowledgments", 0),
+            reflection_depth=consciousness_data.get("reflection_depth", 0.0),
+            consciousness_evolution=consciousness_data.get("consciousness_evolution", [])
         )
         
-        self.consciousness_interface = NISConsciousnessInterface(consciousness_config)
+        # Store in history with retention
+        self.consciousness_history[agent_id].append(metrics)
+        max_history = int((self.config.retention_days * 24 * 3600) / self.config.collection_interval)
+        if len(self.consciousness_history[agent_id]) > max_history:
+            self.consciousness_history[agent_id].popleft()
         
-        # Initialize KAN interface  
-        kan_config = KANConfig(
-            interpretability_threshold=0.9,
-            mathematical_proofs=True,
-            convergence_guarantees=True
-        )
+        # Analyze consciousness patterns
+        await self._analyze_consciousness_patterns(agent_id, metrics)
         
-        self.kan_interface = NISKANInterface(kan_config)
+        # Check for consciousness degradation
+        await self._check_consciousness_health(agent_id, metrics)
         
-        print("🔌 Initialized consciousness and KAN interfaces")
+        self.logger.debug(f"Tracked consciousness for {agent_id}: awareness={metrics.self_awareness_score:.3f}")
     
-    async def _start_real_time_monitoring(self):
-        """Start real-time monitoring"""
+    async def _analyze_consciousness_patterns(self, agent_id: str, metrics: ConsciousnessMetrics):
+        """Analyze consciousness patterns for trends"""
         
-        self.is_monitoring = True
-        
-        print("📊 Starting real-time consciousness monitoring...")
-        print("Press Ctrl+C to stop monitoring\n")
-        
-        try:
-            while self.is_monitoring:
-                # Collect consciousness metrics
-                consciousness_metrics = await self._collect_consciousness_metrics()
-                
-                # Collect KAN metrics
-                kan_metrics = await self._collect_kan_metrics()
-                
-                # Combine metrics
-                combined_metrics = {
-                    "timestamp": datetime.now().isoformat(),
-                    "consciousness": consciousness_metrics,
-                    "kan": kan_metrics,
-                    "system": await self._collect_system_metrics()
-                }
-                
-                # Store metrics
-                self.monitoring_data.append(combined_metrics)
-                
-                # Display real-time status
-                await self._display_real_time_status(combined_metrics)
-                
-                # Check for alerts
-                await self._check_alerts(combined_metrics)
-                
-                # Wait before next collection
-                await asyncio.sleep(5)  # 5-second intervals
-                
-        except KeyboardInterrupt:
-            print("\n⏹️  Monitoring stopped by user")
-        except Exception as e:
-            print(f"❌ Monitoring error: {e}")
-        finally:
-            self.is_monitoring = False
-            await self._save_monitoring_data()
-    
-    async def _collect_consciousness_metrics(self) -> Dict[str, Any]:
-        """Collect consciousness metrics"""
-        
-        if not self.consciousness_interface:
-            return {"error": "consciousness_interface_not_initialized"}
-        
-        try:
-            # Get consciousness state
-            consciousness_state = await self.consciousness_interface.reflect()
-            
-            # Get comprehensive metrics
-            metrics = await self.consciousness_interface.get_consciousness_metrics()
-            
-            return {
-                "state": consciousness_state.to_dict(),
-                "health": metrics.get("consciousness_health", {}),
-                "processing_stats": metrics.get("processing_statistics", {}),
-                "trends": metrics.get("consciousness_trends", {})
-            }
-            
-        except Exception as e:
-            return {"error": f"consciousness_collection_failed: {e}"}
-    
-    async def _collect_kan_metrics(self) -> Dict[str, Any]:
-        """Collect KAN metrics"""
-        
-        if not self.kan_interface:
-            return {"error": "kan_interface_not_initialized"}
-        
-        try:
-            # Validate mathematical guarantees
-            validation_results = await self.kan_interface.validate_mathematical_guarantees()
-            
-            # Get performance metrics (simulated)
-            performance_metrics = {
-                "interpretability_score": 0.95,
-                "mathematical_accuracy": 0.98,
-                "convergence_time": 0.05,
-                "spline_optimization": 0.92
-            }
-            
-            return {
-                "validation": validation_results,
-                "performance": performance_metrics,
-                "mathematical_guarantees": validation_results.get("overall_valid", False)
-            }
-            
-        except Exception as e:
-            return {"error": f"kan_collection_failed: {e}"}
-    
-    async def _collect_system_metrics(self) -> Dict[str, Any]:
-        """Collect system-level metrics"""
-        
-        import psutil
-        import os
-        
-        try:
-            # Get process information
-            process = psutil.Process(os.getpid())
-            
-            # Get system metrics
-            system_metrics = {
-                "cpu_usage": psutil.cpu_percent(interval=1),
-                "memory_usage": process.memory_info().rss / 1024 / 1024,  # MB
-                "memory_percent": process.memory_percent(),
-                "open_files": len(process.open_files()),
-                "threads": process.num_threads(),
-                "uptime": time.time() - process.create_time()
-            }
-            
-            return system_metrics
-            
-        except Exception as e:
-            return {"error": f"system_collection_failed: {e}"}
-    
-    async def _display_real_time_status(self, metrics: Dict[str, Any]):
-        """Display real-time status"""
-        
-        # Clear screen (simple approach)
-        print("\033[2J\033[H")
-        
-        # Header
-        print("🧠 NIS v3.0 Consciousness Monitor")
-        print("=" * 50)
-        print(f"📅 {metrics['timestamp']}")
-        print()
-        
-        # Consciousness Status
-        consciousness = metrics.get("consciousness", {})
-        if "error" not in consciousness:
-            state = consciousness.get("state", {})
-            health = consciousness.get("health", {})
-            
-            print("🧠 CONSCIOUSNESS STATUS")
-            print(f"  Self-Awareness: {state.get('self_awareness_score', 0):.2f}")
-            print(f"  Cognitive Load: {state.get('cognitive_load', 0):.2f}")
-            print(f"  Bias Flags: {len(state.get('bias_flags', []))}")
-            print(f"  Active Insights: {len(state.get('meta_cognitive_insights', []))}")
-            
-            if health:
-                print(f"  Health Score: {health.get('self_awareness', 0):.2f}")
-                print(f"  Cognitive Efficiency: {health.get('cognitive_efficiency', 0):.2f}")
-        else:
-            print(f"🧠 CONSCIOUSNESS: ❌ {consciousness.get('error', 'Unknown error')}")
-        
-        print()
-        
-        # KAN Status
-        kan = metrics.get("kan", {})
-        if "error" not in kan:
-            validation = kan.get("validation", {})
-            performance = kan.get("performance", {})
-            
-            print("🧮 KAN REASONING STATUS")
-            print(f"  Mathematical Guarantees: {'✅' if kan.get('mathematical_guarantees', False) else '❌'}")
-            print(f"  Interpretability: {performance.get('interpretability_score', 0):.2f}")
-            print(f"  Mathematical Accuracy: {performance.get('mathematical_accuracy', 0):.2f}")
-            print(f"  Convergence Time: {performance.get('convergence_time', 0):.3f}s")
-        else:
-            print(f"🧮 KAN: ❌ {kan.get('error', 'Unknown error')}")
-        
-        print()
-        
-        # System Status
-        system = metrics.get("system", {})
-        if "error" not in system:
-            print("⚙️  SYSTEM STATUS")
-            print(f"  CPU Usage: {system.get('cpu_usage', 0):.1f}%")
-            print(f"  Memory Usage: {system.get('memory_usage', 0):.1f} MB")
-            print(f"  Memory Percent: {system.get('memory_percent', 0):.1f}%")
-            print(f"  Active Threads: {system.get('threads', 0)}")
-        else:
-            print(f"⚙️  SYSTEM: ❌ {system.get('error', 'Unknown error')}")
-        
-        print()
-        print("📊 Press Ctrl+C to stop monitoring...")
-    
-    async def _check_alerts(self, metrics: Dict[str, Any]):
-        """Check for alert conditions"""
-        
-        alerts = []
-        
-        # Check consciousness health
-        consciousness = metrics.get("consciousness", {})
-        if "error" not in consciousness:
-            health = consciousness.get("health", {})
-            consciousness_health = health.get("self_awareness", 0)
-            
-            if consciousness_health < self.alert_thresholds["consciousness_health"]:
-                alerts.append(f"🚨 Low consciousness health: {consciousness_health:.2f}")
-            
-            # Check cognitive load
-            state = consciousness.get("state", {})
-            cognitive_load = state.get("cognitive_load", 0)
-            
-            if cognitive_load > self.alert_thresholds["cognitive_load"]:
-                alerts.append(f"⚠️  High cognitive load: {cognitive_load:.2f}")
-            
-            # Check bias detection
-            bias_flags = len(state.get("bias_flags", []))
-            if bias_flags > 3:  # More than 3 active biases
-                alerts.append(f"🎯 Multiple biases detected: {bias_flags}")
-        
-        # Check KAN performance
-        kan = metrics.get("kan", {})
-        if "error" not in kan:
-            performance = kan.get("performance", {})
-            interpretability = performance.get("interpretability_score", 0)
-            
-            if interpretability < self.alert_thresholds["kan_interpretability"]:
-                alerts.append(f"📉 Low KAN interpretability: {interpretability:.2f}")
-        
-        # Display alerts
-        if alerts:
-            print("\n🚨 ALERTS:")
-            for alert in alerts:
-                print(f"  {alert}")
-    
-    async def _save_monitoring_data(self):
-        """Save monitoring data to file"""
-        
-        if not self.monitoring_data:
+        history = list(self.consciousness_history[agent_id])
+        if len(history) < 5:  # Need minimum history for pattern analysis
             return
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"consciousness_monitoring_{timestamp}.json"
-        
-        try:
-            with open(filename, 'w') as f:
-                json.dump(self.monitoring_data, f, indent=2)
+        # Analyze consciousness evolution trend
+        recent_scores = [m.self_awareness_score for m in history[-10:]]
+        if len(recent_scores) >= 5:
+            trend = statistics.mean(recent_scores[-3:]) - statistics.mean(recent_scores[:3])
             
-            print(f"📁 Monitoring data saved to {filename}")
-            
-        except Exception as e:
-            print(f"❌ Failed to save monitoring data: {e}")
-    
-    async def _start_batch_monitoring(self):
-        """Start batch monitoring mode"""
-        
-        print("📊 Starting batch consciousness monitoring...")
-        
-        # Collect metrics once
-        consciousness_metrics = await self._collect_consciousness_metrics()
-        kan_metrics = await self._collect_kan_metrics()
-        system_metrics = await self._collect_system_metrics()
-        
-        # Create comprehensive report
-        report = {
-            "timestamp": datetime.now().isoformat(),
-            "consciousness": consciousness_metrics,
-            "kan": kan_metrics,
-            "system": system_metrics,
-            "summary": await self._generate_batch_summary(consciousness_metrics, kan_metrics, system_metrics)
-        }
-        
-        # Display report
-        await self._display_batch_report(report)
-        
-        # Save report
-        await self._save_batch_report(report)
-    
-    async def _generate_batch_summary(self, consciousness: Dict[str, Any], 
-                                    kan: Dict[str, Any], system: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate batch monitoring summary"""
-        
-        summary = {
-            "consciousness_health": "unknown",
-            "kan_performance": "unknown",
-            "system_performance": "unknown",
-            "overall_status": "unknown",
-            "recommendations": []
-        }
-        
-        # Assess consciousness health
-        if "error" not in consciousness:
-            health = consciousness.get("health", {})
-            avg_health = sum(health.values()) / len(health) if health else 0
-            
-            if avg_health > 0.8:
-                summary["consciousness_health"] = "excellent"
-            elif avg_health > 0.6:
-                summary["consciousness_health"] = "good"
-            else:
-                summary["consciousness_health"] = "needs_attention"
-                summary["recommendations"].append("Improve consciousness monitoring frequency")
-        
-        # Assess KAN performance
-        if "error" not in kan:
-            performance = kan.get("performance", {})
-            interpretability = performance.get("interpretability_score", 0)
-            
-            if interpretability > 0.9:
-                summary["kan_performance"] = "excellent"
-            elif interpretability > 0.8:
-                summary["kan_performance"] = "good"
-            else:
-                summary["kan_performance"] = "needs_attention"
-                summary["recommendations"].append("Optimize KAN interpretability settings")
-        
-        # Assess system performance
-        if "error" not in system:
-            cpu_usage = system.get("cpu_usage", 0)
-            memory_percent = system.get("memory_percent", 0)
-            
-            if cpu_usage < 50 and memory_percent < 70:
-                summary["system_performance"] = "excellent"
-            elif cpu_usage < 80 and memory_percent < 85:
-                summary["system_performance"] = "good"
-            else:
-                summary["system_performance"] = "needs_attention"
-                summary["recommendations"].append("Monitor system resource usage")
-        
-        # Overall status
-        statuses = [summary["consciousness_health"], summary["kan_performance"], summary["system_performance"]]
-        
-        if all(s == "excellent" for s in statuses):
-            summary["overall_status"] = "excellent"
-        elif all(s in ["excellent", "good"] for s in statuses):
-            summary["overall_status"] = "good"
-        else:
-            summary["overall_status"] = "needs_attention"
-        
-        return summary
-    
-    async def _display_batch_report(self, report: Dict[str, Any]):
-        """Display batch monitoring report"""
-        
-        print("\n🧠 NIS v3.0 Consciousness Monitoring Report")
-        print("=" * 60)
-        print(f"📅 Generated: {report['timestamp']}")
-        print()
-        
-        # Summary
-        summary = report.get("summary", {})
-        print("📊 SUMMARY")
-        print(f"  Overall Status: {summary.get('overall_status', 'unknown').upper()}")
-        print(f"  Consciousness Health: {summary.get('consciousness_health', 'unknown').upper()}")
-        print(f"  KAN Performance: {summary.get('kan_performance', 'unknown').upper()}")
-        print(f"  System Performance: {summary.get('system_performance', 'unknown').upper()}")
-        print()
-        
-        # Recommendations
-        recommendations = summary.get("recommendations", [])
-        if recommendations:
-            print("💡 RECOMMENDATIONS")
-            for rec in recommendations:
-                print(f"  • {rec}")
-            print()
-        
-        # Detailed metrics
-        consciousness = report.get("consciousness", {})
-        if "error" not in consciousness:
-            state = consciousness.get("state", {})
-            health = consciousness.get("health", {})
-            
-            print("🧠 CONSCIOUSNESS DETAILS")
-            print(f"  Self-Awareness Score: {state.get('self_awareness_score', 0):.3f}")
-            print(f"  Cognitive Load: {state.get('cognitive_load', 0):.3f}")
-            print(f"  Active Biases: {len(state.get('bias_flags', []))}")
-            print(f"  Meta-Cognitive Insights: {len(state.get('meta_cognitive_insights', []))}")
-            
-            if health:
-                print(f"  Health Metrics:")
-                for key, value in health.items():
-                    print(f"    {key}: {value:.3f}")
-            print()
-        
-        # KAN details
-        kan = report.get("kan", {})
-        if "error" not in kan:
-            validation = kan.get("validation", {})
-            performance = kan.get("performance", {})
-            
-            print("🧮 KAN DETAILS")
-            print(f"  Mathematical Guarantees: {'✅' if kan.get('mathematical_guarantees', False) else '❌'}")
-            print(f"  Interpretability Score: {performance.get('interpretability_score', 0):.3f}")
-            print(f"  Mathematical Accuracy: {performance.get('mathematical_accuracy', 0):.3f}")
-            print(f"  Convergence Time: {performance.get('convergence_time', 0):.3f}s")
-            
-            if validation.get("overall_valid", False):
-                print("  Validation Status: ✅ All tests passed")
-            else:
-                print("  Validation Status: ❌ Some tests failed")
-            print()
-        
-        # System details
-        system = report.get("system", {})
-        if "error" not in system:
-            print("⚙️  SYSTEM DETAILS")
-            print(f"  CPU Usage: {system.get('cpu_usage', 0):.1f}%")
-            print(f"  Memory Usage: {system.get('memory_usage', 0):.1f} MB")
-            print(f"  Memory Percent: {system.get('memory_percent', 0):.1f}%")
-            print(f"  Active Threads: {system.get('threads', 0)}")
-            print(f"  Open Files: {system.get('open_files', 0)}")
-            print(f"  Uptime: {system.get('uptime', 0):.1f} seconds")
-    
-    async def _save_batch_report(self, report: Dict[str, Any]):
-        """Save batch report to file"""
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"consciousness_report_{timestamp}.json"
-        
-        try:
-            with open(filename, 'w') as f:
-                json.dump(report, f, indent=2)
-            
-            print(f"\n📁 Report saved to {filename}")
-            
-        except Exception as e:
-            print(f"❌ Failed to save report: {e}")
-    
-    async def _start_dashboard_monitoring(self):
-        """Start dashboard monitoring mode"""
-        
-        if not MONITORING_DEPS_AVAILABLE:
-            print("❌ Dashboard monitoring requires additional dependencies:")
-            print("   pip install plotly pandas websockets redis-py kafka-python")
-            return
-        
-        print("📊 Starting dashboard consciousness monitoring...")
-        print("🌐 Dashboard will be available at http://localhost:8050")
-        
-        # Create dashboard
-        await self._create_monitoring_dashboard()
-    
-    async def _create_monitoring_dashboard(self):
-        """Create interactive monitoring dashboard"""
-        
-        try:
-            import dash
-            from dash import dcc, html, Input, Output
-            import plotly.express as px
-            
-            # Create Dash app
-            app = dash.Dash(__name__)
-            
-            # Layout
-            app.layout = html.Div([
-                html.H1("🧠 NIS v3.0 Consciousness Monitor", 
-                       style={'textAlign': 'center', 'color': '#2c3e50'}),
-                
-                html.Div([
-                    html.Div([
-                        html.H3("Consciousness Health"),
-                        dcc.Graph(id='consciousness-health-graph')
-                    ], style={'width': '48%', 'display': 'inline-block'}),
-                    
-                    html.Div([
-                        html.H3("KAN Performance"),
-                        dcc.Graph(id='kan-performance-graph')
-                    ], style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
-                ]),
-                
-                html.Div([
-                    html.Div([
-                        html.H3("System Metrics"),
-                        dcc.Graph(id='system-metrics-graph')
-                    ], style={'width': '48%', 'display': 'inline-block'}),
-                    
-                    html.Div([
-                        html.H3("Real-time Status"),
-                        html.Div(id='real-time-status')
-                    ], style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
-                ]),
-                
-                dcc.Interval(
-                    id='interval-component',
-                    interval=5000,  # Update every 5 seconds
-                    n_intervals=0
+            if trend < -0.1:  # Significant degradation
+                await self._trigger_consciousness_alert(
+                    agent_id, 
+                    AlertSeverity.WARNING,
+                    f"Consciousness degradation detected: {trend:.3f} drop in awareness"
                 )
-            ])
-            
-            # Callbacks
-            @app.callback(
-                [Output('consciousness-health-graph', 'figure'),
-                 Output('kan-performance-graph', 'figure'),
-                 Output('system-metrics-graph', 'figure'),
-                 Output('real-time-status', 'children')],
-                [Input('interval-component', 'n_intervals')]
+        
+        # Track bias patterns
+        if metrics.bias_detection_active and len(metrics.meta_cognitive_insights) > 0:
+            bias_insights = [insight for insight in metrics.meta_cognitive_insights if "bias" in insight.lower()]
+            if bias_insights:
+                self.bias_patterns[agent_id].extend(bias_insights)
+        
+        # Monitor ethical violations
+        if metrics.ethical_violations > 0:
+            self.ethical_violations[agent_id].append({
+                "timestamp": metrics.timestamp,
+                "violations": metrics.ethical_violations,
+                "context": metrics.meta_cognitive_insights
+            })
+    
+    async def _check_consciousness_health(self, agent_id: str, metrics: ConsciousnessMetrics):
+        """Check consciousness health and trigger alerts if needed"""
+        
+        # Check consciousness score threshold
+        if metrics.self_awareness_score < 0.5:
+            await self._trigger_consciousness_alert(
+                agent_id,
+                AlertSeverity.ERROR,
+                f"Low consciousness score: {metrics.self_awareness_score:.3f}"
             )
-            def update_dashboard(n):
-                # This would be implemented with real-time data
-                # For now, return placeholder graphs
-                
-                # Consciousness health graph
-                consciousness_fig = px.line(
-                    x=[1, 2, 3, 4, 5],
-                    y=[0.8, 0.85, 0.82, 0.88, 0.9],
-                    title="Consciousness Health Over Time"
-                )
-                
-                # KAN performance graph
-                kan_fig = px.bar(
-                    x=['Interpretability', 'Accuracy', 'Convergence'],
-                    y=[0.95, 0.98, 0.92],
-                    title="KAN Performance Metrics"
-                )
-                
-                # System metrics graph
-                system_fig = px.line(
-                    x=[1, 2, 3, 4, 5],
-                    y=[45, 50, 48, 52, 47],
-                    title="CPU Usage Over Time"
-                )
-                
-                # Real-time status
-                status_div = html.Div([
-                    html.P("🟢 Consciousness: Healthy", style={'color': 'green'}),
-                    html.P("🟢 KAN: Optimal", style={'color': 'green'}),
-                    html.P("🟡 System: Good", style={'color': 'orange'}),
-                    html.P(f"Last Update: {datetime.now().strftime('%H:%M:%S')}")
-                ])
-                
-                return consciousness_fig, kan_fig, system_fig, status_div
-            
-            # Run the app
-            app.run_server(debug=False, host='0.0.0.0', port=8050)
-            
-        except ImportError:
-            print("❌ Dashboard requires Dash: pip install dash")
-        except Exception as e:
-            print(f"❌ Dashboard error: {e}")
-
-class ConsciousnessDebugger:
-    """
-    Advanced debugging tools for consciousness development
-    """
-    
-    def __init__(self):
-        self.debug_sessions = []
-        self.breakpoints = []
-        self.trace_enabled = False
-    
-    async def debug_consciousness_processing(self, consciousness_interface: NISConsciousnessInterface,
-                                          input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Debug consciousness processing step by step"""
         
-        print("🐛 Starting consciousness debugging session...")
+        # Check for bias detection failures
+        if not metrics.bias_detection_active:
+            await self._trigger_consciousness_alert(
+                agent_id,
+                AlertSeverity.WARNING,
+                "Bias detection system inactive"
+            )
         
-        debug_session = {
-            "timestamp": datetime.now().isoformat(),
-            "input_data": input_data,
-            "processing_steps": [],
-            "consciousness_states": [],
-            "debug_insights": []
+        # Check for ethical violations
+        if metrics.ethical_violations > 0:
+            await self._trigger_consciousness_alert(
+                agent_id,
+                AlertSeverity.CRITICAL,
+                f"Ethical violations detected: {metrics.ethical_violations}"
+            )
+    
+    async def _trigger_consciousness_alert(self, agent_id: str, severity: AlertSeverity, message: str):
+        """Trigger consciousness-related alert"""
+        
+        alert = Alert(
+            alert_id=f"consciousness_{agent_id}_{int(time.time())}",
+            timestamp=datetime.now(),
+            severity=severity,
+            source=f"consciousness_monitor_{agent_id}",
+            message=message,
+            details={
+                "agent_id": agent_id,
+                "consciousness_history": list(self.consciousness_history[agent_id])[-5:],
+                "bias_patterns": self.bias_patterns[agent_id][-5:],
+                "ethical_violations": self.ethical_violations[agent_id][-3:]
+            }
+        )
+        
+        # This would be sent to the main monitoring system
+        self.logger.warning(f"Consciousness Alert [{severity.value}]: {message} (Agent: {agent_id})")
+    
+    def get_consciousness_summary(self, agent_id: str) -> Dict[str, Any]:
+        """Get consciousness monitoring summary for an agent"""
+        
+        if agent_id not in self.consciousness_history:
+            return {"agent_id": agent_id, "status": "no_data"}
+        
+        history = list(self.consciousness_history[agent_id])
+        if not history:
+            return {"agent_id": agent_id, "status": "no_data"}
+        
+        latest = history[-1]
+        recent_scores = [m.self_awareness_score for m in history[-10:]]
+        
+        return {
+            "agent_id": agent_id,
+            "current_consciousness_score": latest.self_awareness_score,
+            "consciousness_trend": statistics.mean(recent_scores[-3:]) - statistics.mean(recent_scores[:3]) if len(recent_scores) >= 6 else 0.0,
+            "bias_detection_active": latest.bias_detection_active,
+            "recent_insights": latest.meta_cognitive_insights[-3:],
+            "attention_areas": len(latest.attention_focus),
+            "ethical_violations_total": sum(v["violations"] for v in self.ethical_violations[agent_id]),
+            "consciousness_stability": statistics.stdev(recent_scores) if len(recent_scores) > 1 else 0.0,
+            "last_update": latest.timestamp.isoformat()
         }
-        
-        # Step 1: Pre-processing consciousness state
-        pre_state = await consciousness_interface.reflect()
-        debug_session["consciousness_states"].append({
-            "phase": "pre_processing",
-            "state": pre_state.to_dict()
-        })
-        
-        print(f"📊 Pre-processing consciousness state:")
-        print(f"  Self-awareness: {pre_state.self_awareness_score:.3f}")
-        print(f"  Cognitive load: {pre_state.cognitive_load:.3f}")
-        print(f"  Active biases: {len(pre_state.bias_flags)}")
-        
-        # Step 2: Process with consciousness (with debugging)
-        result = await consciousness_interface.process_with_consciousness(input_data)
-        debug_session["processing_steps"].append({
-            "step": "consciousness_processing",
-            "result": result
-        })
-        
-        # Step 3: Post-processing consciousness state
-        post_state = await consciousness_interface.reflect()
-        debug_session["consciousness_states"].append({
-            "phase": "post_processing",
-            "state": post_state.to_dict()
-        })
-        
-        print(f"📊 Post-processing consciousness state:")
-        print(f"  Self-awareness: {post_state.self_awareness_score:.3f}")
-        print(f"  Cognitive load: {post_state.cognitive_load:.3f}")
-        print(f"  Active biases: {len(post_state.bias_flags)}")
-        
-        # Step 4: Generate debug insights
-        insights = await self._generate_debug_insights(pre_state, post_state, result)
-        debug_session["debug_insights"] = insights
-        
-        print("\n🧠 Debug Insights:")
-        for insight in insights:
-            print(f"  • {insight}")
-        
-        # Store debug session
-        self.debug_sessions.append(debug_session)
-        
-        return debug_session
-    
-    async def _generate_debug_insights(self, pre_state, post_state, result) -> List[str]:
-        """Generate debugging insights"""
-        
-        insights = []
-        
-        # Analyze consciousness state changes
-        awareness_change = post_state.self_awareness_score - pre_state.self_awareness_score
-        if awareness_change > 0.05:
-            insights.append(f"Significant awareness increase: +{awareness_change:.3f}")
-        elif awareness_change < -0.05:
-            insights.append(f"Awareness decrease detected: {awareness_change:.3f}")
-        
-        # Analyze cognitive load changes
-        load_change = post_state.cognitive_load - pre_state.cognitive_load
-        if load_change > 0.1:
-            insights.append(f"High cognitive load increase: +{load_change:.3f}")
-        
-        # Analyze bias detection
-        new_biases = len(post_state.bias_flags) - len(pre_state.bias_flags)
-        if new_biases > 0:
-            insights.append(f"New biases detected: {new_biases}")
-        
-        # Analyze processing confidence
-        confidence = result.get("processing_confidence", 0)
-        if confidence < 0.7:
-            insights.append(f"Low processing confidence: {confidence:.3f}")
-        
-        return insights
 
-def main():
-    """Main CLI function for consciousness monitoring"""
+class PerformanceMonitor:
+    """
+    Performance monitoring for NIS agents and system components
     
-    parser = argparse.ArgumentParser(
-        description="NIS v3.0 Consciousness Monitoring CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Real-time monitoring
-  nis monitor --mode real_time
-  
-  # Batch monitoring report
-  nis monitor --mode batch
-  
-  # Interactive dashboard
-  nis monitor --mode dashboard
-  
-  # Debug consciousness processing
-  nis monitor --debug --input '{"task": "reasoning", "complexity": 0.8}'
-        """
-    )
+    Features:
+    - Real-time performance tracking
+    - Resource usage monitoring
+    - Response time analysis
+    - Success rate tracking
+    - Bottleneck detection
+    - Capacity planning metrics
+    """
     
-    parser.add_argument(
-        "--mode",
-        choices=["real_time", "batch", "dashboard"],
-        default="real_time",
-        help="Monitoring mode"
-    )
+    def __init__(self, config: MonitoringConfig):
+        self.config = config
+        self.agent_metrics_history = defaultdict(deque)
+        self.system_metrics_history = deque()
+        self.performance_baselines = {}
+        self.running = False
+        
+        self.logger = logging.getLogger(f"{__name__}.PerformanceMonitor")
     
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debugging mode"
-    )
+    async def track_agent_performance(self, agent_id: str, performance_data: Dict[str, Any]):
+        """Track performance metrics for an agent"""
+        
+        metrics = AgentMetrics(
+            agent_id=agent_id,
+            agent_type=performance_data.get("agent_type", "unknown"),
+            timestamp=datetime.now(),
+            response_time=performance_data.get("response_time", 0.0),
+            success_rate=performance_data.get("success_rate", 0.0),
+            error_count=performance_data.get("error_count", 0),
+            consciousness_score=performance_data.get("consciousness_score", 0.0),
+            kan_accuracy=performance_data.get("kan_accuracy", 0.0),
+            bias_detections=performance_data.get("bias_detections", 0),
+            coordination_efficiency=performance_data.get("coordination_efficiency", 0.0),
+            memory_usage=performance_data.get("memory_usage", 0.0),
+            cpu_usage=performance_data.get("cpu_usage", 0.0),
+            active_tasks=performance_data.get("active_tasks", 0)
+        )
+        
+        # Store in history
+        self.agent_metrics_history[agent_id].append(metrics)
+        max_history = int((self.config.retention_days * 24 * 3600) / self.config.collection_interval)
+        if len(self.agent_metrics_history[agent_id]) > max_history:
+            self.agent_metrics_history[agent_id].popleft()
+        
+        # Analyze performance patterns
+        await self._analyze_performance_patterns(agent_id, metrics)
+        
+        # Check performance thresholds
+        await self._check_performance_thresholds(agent_id, metrics)
+        
+        self.logger.debug(f"Tracked performance for {agent_id}: response_time={metrics.response_time:.3f}ms")
     
-    parser.add_argument(
-        "--input",
-        type=str,
-        help="Input data for debugging (JSON string)"
-    )
-    
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Configuration file path"
-    )
-    
-    parser.add_argument(
-        "--output",
-        type=str,
-        help="Output file path for reports"
-    )
-    
-    args = parser.parse_args()
-    
-    # Load configuration
-    config = {}
-    if args.config:
+    async def track_system_performance(self):
+        """Track system-level performance metrics"""
+        
+        if not PSUTIL_AVAILABLE:
+            self.logger.warning("psutil not available, system metrics limited")
+            return
+        
         try:
-            with open(args.config, 'r') as f:
-                config = json.load(f)
+            # Collect system metrics
+            cpu_usage = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            network = psutil.net_io_counters()
+            
+            metrics = SystemMetrics(
+                timestamp=datetime.now(),
+                cpu_usage=cpu_usage,
+                memory_usage=memory.percent,
+                disk_usage=(disk.used / disk.total) * 100,
+                network_io={
+                    "bytes_sent": network.bytes_sent,
+                    "bytes_recv": network.bytes_recv,
+                    "packets_sent": network.packets_sent,
+                    "packets_recv": network.packets_recv
+                },
+                process_count=len(psutil.pids()),
+                load_average=psutil.getloadavg() if hasattr(psutil, 'getloadavg') else [0.0, 0.0, 0.0],
+                uptime=time.time() - psutil.boot_time()
+            )
+            
+            # Store in history
+            self.system_metrics_history.append(metrics)
+            max_history = int((self.config.retention_days * 24 * 3600) / self.config.collection_interval)
+            if len(self.system_metrics_history) > max_history:
+                self.system_metrics_history.popleft()
+            
+            # Check system thresholds
+            await self._check_system_thresholds(metrics)
+            
+            self.logger.debug(f"System metrics: CPU={cpu_usage:.1f}%, Memory={memory.percent:.1f}%")
+            
         except Exception as e:
-            print(f"❌ Failed to load config: {e}")
-            return 1
+            self.logger.error(f"Error collecting system metrics: {e}")
     
-    # Run monitoring
-    try:
-        if args.debug:
-            # Debug mode
-            if not args.input:
-                print("❌ Debug mode requires --input parameter")
-                return 1
+    async def _analyze_performance_patterns(self, agent_id: str, metrics: AgentMetrics):
+        """Analyze performance patterns and trends"""
+        
+        history = list(self.agent_metrics_history[agent_id])
+        if len(history) < 10:
+            return
+        
+        # Analyze response time trends
+        recent_times = [m.response_time for m in history[-10:]]
+        if statistics.mean(recent_times) > statistics.mean([m.response_time for m in history[-20:-10]]) * 1.5:
+            await self._trigger_performance_alert(
+                agent_id,
+                AlertSeverity.WARNING,
+                f"Response time degradation detected: {statistics.mean(recent_times):.3f}ms average"
+            )
+        
+        # Analyze success rate trends
+        recent_success = [m.success_rate for m in history[-5:]]
+        if statistics.mean(recent_success) < 0.9:
+            await self._trigger_performance_alert(
+                agent_id,
+                AlertSeverity.ERROR,
+                f"Low success rate: {statistics.mean(recent_success):.1%}"
+            )
+    
+    async def _check_performance_thresholds(self, agent_id: str, metrics: AgentMetrics):
+        """Check performance against configured thresholds"""
+        
+        # Check response time
+        if metrics.response_time > 1000:  # 1 second
+            await self._trigger_performance_alert(
+                agent_id,
+                AlertSeverity.WARNING,
+                f"High response time: {metrics.response_time:.3f}ms"
+            )
+        
+        # Check success rate
+        if metrics.success_rate < 0.95:
+            await self._trigger_performance_alert(
+                agent_id,
+                AlertSeverity.ERROR,
+                f"Low success rate: {metrics.success_rate:.1%}"
+            )
+        
+        # Check consciousness score
+        if metrics.consciousness_score < 0.7:
+            await self._trigger_performance_alert(
+                agent_id,
+                AlertSeverity.WARNING,
+                f"Low consciousness performance: {metrics.consciousness_score:.3f}"
+            )
+    
+    async def _check_system_thresholds(self, metrics: SystemMetrics):
+        """Check system metrics against thresholds"""
+        
+        thresholds = self.config.alert_thresholds
+        
+        if metrics.cpu_usage > thresholds.get("cpu_usage", 80.0):
+            await self._trigger_system_alert(
+                AlertSeverity.WARNING,
+                f"High CPU usage: {metrics.cpu_usage:.1f}%"
+            )
+        
+        if metrics.memory_usage > thresholds.get("memory_usage", 85.0):
+            await self._trigger_system_alert(
+                AlertSeverity.ERROR,
+                f"High memory usage: {metrics.memory_usage:.1f}%"
+            )
+    
+    async def _trigger_performance_alert(self, agent_id: str, severity: AlertSeverity, message: str):
+        """Trigger performance-related alert"""
+        self.logger.warning(f"Performance Alert [{severity.value}]: {message} (Agent: {agent_id})")
+    
+    async def _trigger_system_alert(self, severity: AlertSeverity, message: str):
+        """Trigger system-level alert"""
+        self.logger.warning(f"System Alert [{severity.value}]: {message}")
+    
+    def get_performance_summary(self, agent_id: str = None) -> Dict[str, Any]:
+        """Get performance summary for agent or entire system"""
+        
+        if agent_id:
+            # Agent-specific summary
+            if agent_id not in self.agent_metrics_history:
+                return {"agent_id": agent_id, "status": "no_data"}
             
-            input_data = json.loads(args.input)
+            history = list(self.agent_metrics_history[agent_id])
+            if not history:
+                return {"agent_id": agent_id, "status": "no_data"}
             
-            async def debug_session():
-                debugger = ConsciousnessDebugger()
-                consciousness_interface = NISConsciousnessInterface(ConsciousnessConfig())
-                
-                debug_result = await debugger.debug_consciousness_processing(
-                    consciousness_interface, input_data
-                )
-                
-                if args.output:
-                    with open(args.output, 'w') as f:
-                        json.dump(debug_result, f, indent=2)
-                    print(f"📁 Debug session saved to {args.output}")
+            latest = history[-1]
+            recent_metrics = history[-10:] if len(history) >= 10 else history
             
-            asyncio.run(debug_session())
-            
+            return {
+                "agent_id": agent_id,
+                "current_response_time": latest.response_time,
+                "avg_response_time": statistics.mean([m.response_time for m in recent_metrics]),
+                "success_rate": latest.success_rate,
+                "error_count": latest.error_count,
+                "consciousness_score": latest.consciousness_score,
+                "kan_accuracy": latest.kan_accuracy,
+                "coordination_efficiency": latest.coordination_efficiency,
+                "resource_usage": {
+                    "memory": latest.memory_usage,
+                    "cpu": latest.cpu_usage
+                },
+                "active_tasks": latest.active_tasks,
+                "last_update": latest.timestamp.isoformat()
+            }
         else:
-            # Monitoring mode
-            async def monitor_session():
-                monitor = ConsciousnessMonitor(config)
-                await monitor.start_monitoring(args.mode)
+            # System-wide summary
+            if not self.system_metrics_history:
+                return {"status": "no_system_data"}
             
-            asyncio.run(monitor_session())
+            latest_system = self.system_metrics_history[-1]
+            recent_system = list(self.system_metrics_history)[-10:] if len(self.system_metrics_history) >= 10 else list(self.system_metrics_history)
+            
+            # Aggregate agent metrics
+            all_agent_metrics = []
+            for agent_history in self.agent_metrics_history.values():
+                if agent_history:
+                    all_agent_metrics.append(agent_history[-1])
+            
+            return {
+                "system_metrics": {
+                    "cpu_usage": latest_system.cpu_usage,
+                    "memory_usage": latest_system.memory_usage,
+                    "disk_usage": latest_system.disk_usage,
+                    "process_count": latest_system.process_count,
+                    "uptime": latest_system.uptime
+                },
+                "agent_summary": {
+                    "total_agents": len(all_agent_metrics),
+                    "avg_response_time": statistics.mean([m.response_time for m in all_agent_metrics]) if all_agent_metrics else 0,
+                    "avg_success_rate": statistics.mean([m.success_rate for m in all_agent_metrics]) if all_agent_metrics else 0,
+                    "total_errors": sum([m.error_count for m in all_agent_metrics]),
+                    "avg_consciousness": statistics.mean([m.consciousness_score for m in all_agent_metrics]) if all_agent_metrics else 0
+                },
+                "last_update": latest_system.timestamp.isoformat()
+            }
+
+class CoordinationMonitor:
+    """
+    Multi-agent coordination monitoring
+    
+    Features:
+    - Coordination request tracking
+    - Success/failure rate monitoring
+    - Message throughput analysis
+    - Consensus accuracy tracking
+    - Network efficiency metrics
+    - Bottleneck identification
+    """
+    
+    def __init__(self, config: MonitoringConfig):
+        self.config = config
+        self.coordination_history = deque()
+        self.message_patterns = defaultdict(list)
+        self.consensus_tracking = []
+        self.network_topology = {}
         
-        return 0
+        self.logger = logging.getLogger(f"{__name__}.CoordinationMonitor")
+    
+    async def track_coordination_event(self, coordination_data: Dict[str, Any]):
+        """Track multi-agent coordination event"""
         
-    except KeyboardInterrupt:
-        print("\n⏹️  Monitoring stopped by user")
-        return 0
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return 1
+        metrics = CoordinationMetrics(
+            timestamp=datetime.now(),
+            active_agents=coordination_data.get("active_agents", 0),
+            coordination_requests=coordination_data.get("coordination_requests", 0),
+            coordination_successes=coordination_data.get("coordination_successes", 0),
+            coordination_failures=coordination_data.get("coordination_failures", 0),
+            average_response_time=coordination_data.get("average_response_time", 0.0),
+            message_throughput=coordination_data.get("message_throughput", 0.0),
+            consensus_accuracy=coordination_data.get("consensus_accuracy", 0.0),
+            network_efficiency=coordination_data.get("network_efficiency", 0.0)
+        )
+        
+        # Store in history
+        self.coordination_history.append(metrics)
+        max_history = int((self.config.retention_days * 24 * 3600) / self.config.collection_interval)
+        if len(self.coordination_history) > max_history:
+            self.coordination_history.popleft()
+        
+        # Analyze coordination patterns
+        await self._analyze_coordination_patterns(metrics)
+        
+        self.logger.debug(f"Tracked coordination: {metrics.active_agents} agents, {metrics.coordination_successes}/{metrics.coordination_requests} success rate")
+    
+    async def _analyze_coordination_patterns(self, metrics: CoordinationMetrics):
+        """Analyze coordination patterns for optimization opportunities"""
+        
+        history = list(self.coordination_history)
+        if len(history) < 5:
+            return
+        
+        # Check coordination success rate
+        recent_metrics = history[-5:]
+        total_requests = sum([m.coordination_requests for m in recent_metrics])
+        total_successes = sum([m.coordination_successes for m in recent_metrics])
+        
+        if total_requests > 0:
+            success_rate = total_successes / total_requests
+            if success_rate < 0.9:
+                await self._trigger_coordination_alert(
+                    AlertSeverity.WARNING,
+                    f"Low coordination success rate: {success_rate:.1%}"
+                )
+        
+        # Check network efficiency trends
+        recent_efficiency = [m.network_efficiency for m in recent_metrics]
+        if statistics.mean(recent_efficiency) < 0.7:
+            await self._trigger_coordination_alert(
+                AlertSeverity.WARNING,
+                f"Low network efficiency: {statistics.mean(recent_efficiency):.1%}"
+            )
+    
+    async def _trigger_coordination_alert(self, severity: AlertSeverity, message: str):
+        """Trigger coordination-related alert"""
+        self.logger.warning(f"Coordination Alert [{severity.value}]: {message}")
+    
+    def get_coordination_summary(self) -> Dict[str, Any]:
+        """Get coordination monitoring summary"""
+        
+        if not self.coordination_history:
+            return {"status": "no_data"}
+        
+        history = list(self.coordination_history)
+        latest = history[-1]
+        recent_metrics = history[-10:] if len(history) >= 10 else history
+        
+        total_requests = sum([m.coordination_requests for m in recent_metrics])
+        total_successes = sum([m.coordination_successes for m in recent_metrics])
+        
+        return {
+            "current_active_agents": latest.active_agents,
+            "recent_success_rate": (total_successes / total_requests) if total_requests > 0 else 0.0,
+            "average_response_time": statistics.mean([m.average_response_time for m in recent_metrics]),
+            "message_throughput": latest.message_throughput,
+            "consensus_accuracy": latest.consensus_accuracy,
+            "network_efficiency": latest.network_efficiency,
+            "coordination_trends": {
+                "requests_trend": total_requests,
+                "efficiency_trend": statistics.mean([m.network_efficiency for m in recent_metrics])
+            },
+            "last_update": latest.timestamp.isoformat()
+        }
+
+class NISMonitoringSystem:
+    """
+    Comprehensive NIS monitoring system that integrates all monitoring components
+    
+    Features:
+    - Real-time consciousness tracking
+    - Performance monitoring
+    - Multi-agent coordination monitoring
+    - System health monitoring
+    - Alert management
+    - Real-time dashboard
+    - WebSocket API for live updates
+    """
+    
+    def __init__(self, config: MonitoringConfig = None):
+        self.config = config or MonitoringConfig()
+        
+        # Initialize monitoring components
+        self.consciousness_monitor = ConsciousnessMonitor(self.config)
+        self.performance_monitor = PerformanceMonitor(self.config)
+        self.coordination_monitor = CoordinationMonitor(self.config)
+        
+        # Alert management
+        self.alerts = deque()
+        self.alert_handlers = []
+        self.subscribers = set()
+        
+        # System state
+        self.running = False
+        self.start_time = None
+        
+        # Background tasks
+        self.monitoring_tasks = []
+        
+        self.logger = logging.getLogger(f"{__name__}.NISMonitoringSystem")
+        
+        # Initialize database if available
+        if SQLITE_AVAILABLE:
+            self._initialize_database()
+    
+    def _initialize_database(self):
+        """Initialize SQLite database for persistent storage"""
+        try:
+            conn = sqlite3.connect(self.config.database_path)
+            cursor = conn.cursor()
+            
+            # Create tables for different metric types
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS consciousness_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_id TEXT,
+                    timestamp TEXT,
+                    self_awareness_score REAL,
+                    bias_detection_active BOOLEAN,
+                    ethical_violations INTEGER,
+                    meta_insights TEXT
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS performance_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_id TEXT,
+                    timestamp TEXT,
+                    response_time REAL,
+                    success_rate REAL,
+                    error_count INTEGER,
+                    consciousness_score REAL,
+                    kan_accuracy REAL
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS system_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT,
+                    cpu_usage REAL,
+                    memory_usage REAL,
+                    disk_usage REAL,
+                    process_count INTEGER
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS alerts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    alert_id TEXT UNIQUE,
+                    timestamp TEXT,
+                    severity TEXT,
+                    source TEXT,
+                    message TEXT,
+                    details TEXT,
+                    resolved BOOLEAN DEFAULT FALSE
+                )
+            ''')
+            
+            conn.commit()
+            conn.close()
+            
+            self.logger.info("Database initialized successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Database initialization failed: {e}")
+    
+    async def start_monitoring(self):
+        """Start the monitoring system"""
+        if self.running:
+            self.logger.warning("Monitoring system already running")
+            return
+        
+        self.running = True
+        self.start_time = datetime.now()
+        
+        self.logger.info("Starting NIS monitoring system")
+        
+        # Start background monitoring tasks
+        if self.config.monitoring_level in [MonitoringLevel.STANDARD, MonitoringLevel.COMPREHENSIVE, MonitoringLevel.DEEP]:
+            self.monitoring_tasks.extend([
+                asyncio.create_task(self._system_monitoring_loop()),
+                asyncio.create_task(self._alert_processing_loop()),
+                asyncio.create_task(self._cleanup_old_data_loop())
+            ])
+        
+        # Start WebSocket server for real-time updates
+        if WEBSOCKETS_AVAILABLE and self.config.enable_real_time_alerts:
+            self.monitoring_tasks.append(
+                asyncio.create_task(self._start_websocket_server())
+            )
+        
+        self.logger.info(f"Monitoring system started with {len(self.monitoring_tasks)} background tasks")
+    
+    async def stop_monitoring(self):
+        """Stop the monitoring system"""
+        if not self.running:
+            return
+        
+        self.running = False
+        
+        # Cancel all background tasks
+        for task in self.monitoring_tasks:
+            task.cancel()
+        
+        # Wait for tasks to complete
+        await asyncio.gather(*self.monitoring_tasks, return_exceptions=True)
+        self.monitoring_tasks.clear()
+        
+        self.logger.info("Monitoring system stopped")
+    
+    async def _system_monitoring_loop(self):
+        """Background loop for system-level monitoring"""
+        while self.running:
+            try:
+                await self.performance_monitor.track_system_performance()
+                await asyncio.sleep(self.config.collection_interval)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"System monitoring error: {e}")
+                await asyncio.sleep(self.config.collection_interval)
+    
+    async def _alert_processing_loop(self):
+        """Background loop for processing alerts"""
+        while self.running:
+            try:
+                # Process queued alerts
+                if self.alerts:
+                    alert = self.alerts.popleft()
+                    await self._process_alert(alert)
+                
+                await asyncio.sleep(1.0)  # Check for alerts every second
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"Alert processing error: {e}")
+                await asyncio.sleep(1.0)
+    
+    async def _cleanup_old_data_loop(self):
+        """Background loop for cleaning up old monitoring data"""
+        while self.running:
+            try:
+                # Clean up old data every hour
+                await asyncio.sleep(3600)
+                await self._cleanup_old_data()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"Data cleanup error: {e}")
+    
+    async def _start_websocket_server(self):
+        """Start WebSocket server for real-time monitoring updates"""
+        try:
+            async def handle_websocket(websocket, path):
+                self.subscribers.add(websocket)
+                try:
+                    await websocket.wait_closed()
+                finally:
+                    self.subscribers.discard(websocket)
+            
+            server = await websockets.serve(
+                handle_websocket,
+                "localhost",
+                self.config.websocket_port
+            )
+            
+            self.logger.info(f"WebSocket server started on port {self.config.websocket_port}")
+            await server.wait_closed()
+            
+        except Exception as e:
+            self.logger.error(f"WebSocket server error: {e}")
+    
+    async def _process_alert(self, alert: Alert):
+        """Process and distribute alert"""
+        
+        # Store alert in database
+        if SQLITE_AVAILABLE:
+            try:
+                conn = sqlite3.connect(self.config.database_path)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO alerts (alert_id, timestamp, severity, source, message, details)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    alert.alert_id,
+                    alert.timestamp.isoformat(),
+                    alert.severity.value,
+                    alert.source,
+                    alert.message,
+                    json.dumps(alert.details)
+                ))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                self.logger.error(f"Failed to store alert in database: {e}")
+        
+        # Send to WebSocket subscribers
+        if self.subscribers:
+            alert_message = {
+                "type": "alert",
+                "data": {
+                    "alert_id": alert.alert_id,
+                    "timestamp": alert.timestamp.isoformat(),
+                    "severity": alert.severity.value,
+                    "source": alert.source,
+                    "message": alert.message
+                }
+            }
+            
+            disconnected = set()
+            for websocket in self.subscribers:
+                try:
+                    await websocket.send(json.dumps(alert_message))
+                except:
+                    disconnected.add(websocket)
+            
+            # Remove disconnected subscribers
+            self.subscribers -= disconnected
+        
+        # Call custom alert handlers
+        for handler in self.alert_handlers:
+            try:
+                await handler(alert)
+            except Exception as e:
+                self.logger.error(f"Alert handler error: {e}")
+    
+    async def _cleanup_old_data(self):
+        """Clean up old monitoring data"""
+        cutoff_time = datetime.now() - timedelta(days=self.config.retention_days)
+        
+        if SQLITE_AVAILABLE:
+            try:
+                conn = sqlite3.connect(self.config.database_path)
+                cursor = conn.cursor()
+                
+                # Clean up old records
+                cursor.execute('DELETE FROM consciousness_metrics WHERE timestamp < ?', (cutoff_time.isoformat(),))
+                cursor.execute('DELETE FROM performance_metrics WHERE timestamp < ?', (cutoff_time.isoformat(),))
+                cursor.execute('DELETE FROM system_metrics WHERE timestamp < ?', (cutoff_time.isoformat(),))
+                cursor.execute('DELETE FROM alerts WHERE timestamp < ? AND resolved = TRUE', (cutoff_time.isoformat(),))
+                
+                conn.commit()
+                conn.close()
+                
+                self.logger.debug("Old monitoring data cleaned up")
+                
+            except Exception as e:
+                self.logger.error(f"Data cleanup failed: {e}")
+    
+    # Public API methods
+    
+    async def track_agent_consciousness(self, agent_id: str, consciousness_data: Dict[str, Any]):
+        """Track consciousness metrics for an agent"""
+        await self.consciousness_monitor.track_consciousness_state(agent_id, consciousness_data)
+    
+    async def track_agent_performance(self, agent_id: str, performance_data: Dict[str, Any]):
+        """Track performance metrics for an agent"""
+        await self.performance_monitor.track_agent_performance(agent_id, performance_data)
+    
+    async def track_coordination_event(self, coordination_data: Dict[str, Any]):
+        """Track multi-agent coordination event"""
+        await self.coordination_monitor.track_coordination_event(coordination_data)
+    
+    def add_alert_handler(self, handler: Callable[[Alert], None]):
+        """Add custom alert handler"""
+        self.alert_handlers.append(handler)
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get comprehensive system status"""
+        
+        uptime = (datetime.now() - self.start_time).total_seconds() if self.start_time else 0
+        
+        return {
+            "monitoring_system": {
+                "running": self.running,
+                "uptime_seconds": uptime,
+                "start_time": self.start_time.isoformat() if self.start_time else None,
+                "monitoring_level": self.config.monitoring_level.value,
+                "collection_interval": self.config.collection_interval,
+                "active_tasks": len(self.monitoring_tasks),
+                "websocket_subscribers": len(self.subscribers)
+            },
+            "consciousness_monitoring": {
+                "tracked_agents": len(self.consciousness_monitor.consciousness_history),
+                "total_consciousness_records": sum(len(history) for history in self.consciousness_monitor.consciousness_history.values()),
+                "bias_patterns_detected": sum(len(patterns) for patterns in self.consciousness_monitor.bias_patterns.values()),
+                "ethical_violations": sum(len(violations) for violations in self.consciousness_monitor.ethical_violations.values())
+            },
+            "performance_monitoring": {
+                "tracked_agents": len(self.performance_monitor.agent_metrics_history),
+                "system_metrics_available": len(self.performance_monitor.system_metrics_history) > 0,
+                "total_performance_records": sum(len(history) for history in self.performance_monitor.agent_metrics_history.values())
+            },
+            "coordination_monitoring": {
+                "coordination_events": len(self.coordination_monitor.coordination_history),
+                "recent_success_rate": self.coordination_monitor.get_coordination_summary().get("recent_success_rate", 0.0)
+            },
+            "alerts": {
+                "total_alerts": len(self.alerts),
+                "unresolved_alerts": len([a for a in self.alerts if not a.resolved]),
+                "alert_handlers": len(self.alert_handlers)
+            }
+        }
+    
+    def get_agent_status(self, agent_id: str) -> Dict[str, Any]:
+        """Get comprehensive status for a specific agent"""
+        
+        consciousness_summary = self.consciousness_monitor.get_consciousness_summary(agent_id)
+        performance_summary = self.performance_monitor.get_performance_summary(agent_id)
+        
+        return {
+            "agent_id": agent_id,
+            "consciousness": consciousness_summary,
+            "performance": performance_summary,
+            "last_seen": max(
+                consciousness_summary.get("last_update", ""),
+                performance_summary.get("last_update", "")
+            ) if consciousness_summary.get("status") != "no_data" or performance_summary.get("status") != "no_data" else None
+        }
+    
+    def get_dashboard_data(self) -> Dict[str, Any]:
+        """Get data for monitoring dashboard"""
+        
+        system_status = self.get_system_status()
+        performance_summary = self.performance_monitor.get_performance_summary()
+        coordination_summary = self.coordination_monitor.get_coordination_summary()
+        
+        # Get summaries for all tracked agents
+        agent_summaries = {}
+        for agent_id in self.consciousness_monitor.consciousness_history.keys():
+            agent_summaries[agent_id] = self.get_agent_status(agent_id)
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "system_status": system_status,
+            "system_performance": performance_summary,
+            "coordination_status": coordination_summary,
+            "agents": agent_summaries,
+            "recent_alerts": [
+                {
+                    "alert_id": alert.alert_id,
+                    "timestamp": alert.timestamp.isoformat(),
+                    "severity": alert.severity.value,
+                    "source": alert.source,
+                    "message": alert.message,
+                    "resolved": alert.resolved
+                }
+                for alert in list(self.alerts)[-10:]  # Last 10 alerts
+            ]
+        }
+
+# Factory function for creating monitoring system
+def create_monitoring_system(config: Dict[str, Any] = None) -> NISMonitoringSystem:
+    """Create NIS monitoring system with configuration"""
+    
+    if config:
+        monitoring_config = MonitoringConfig(**config)
+    else:
+        monitoring_config = MonitoringConfig()
+    
+    return NISMonitoringSystem(monitoring_config)
+
+# Example usage
+async def example_monitoring_usage():
+    """Example of how to use the NIS monitoring system"""
+    
+    # Create monitoring system
+    monitoring = create_monitoring_system({
+        "monitoring_level": "comprehensive",
+        "collection_interval": 2.0,
+        "enable_real_time_alerts": True,
+        "dashboard_port": 3000
+    })
+    
+    # Start monitoring
+    await monitoring.start_monitoring()
+    
+    # Simulate tracking some agent metrics
+    await monitoring.track_agent_consciousness("reasoning-agent-1", {
+        "self_awareness_score": 0.87,
+        "bias_detection_active": True,
+        "meta_cognitive_insights": ["High confidence in reasoning", "No biases detected"],
+        "attention_focus": ["problem_analysis", "solution_generation"],
+        "ethical_violations": 0,
+        "uncertainty_acknowledgments": 2
+    })
+    
+    await monitoring.track_agent_performance("reasoning-agent-1", {
+        "agent_type": "reasoning",
+        "response_time": 45.2,
+        "success_rate": 0.96,
+        "error_count": 1,
+        "consciousness_score": 0.87,
+        "kan_accuracy": 0.94,
+        "coordination_efficiency": 0.91,
+        "memory_usage": 12.5,
+        "cpu_usage": 8.3,
+        "active_tasks": 3
+    })
+    
+    # Get dashboard data
+    dashboard_data = monitoring.get_dashboard_data()
+    print(f"Dashboard data: {json.dumps(dashboard_data, indent=2)}")
+    
+    # Stop monitoring
+    await monitoring.stop_monitoring()
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    asyncio.run(example_monitoring_usage()) 

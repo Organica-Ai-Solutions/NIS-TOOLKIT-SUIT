@@ -239,14 +239,21 @@ class TradingSystem:
 
 ---
 
-## 🚀 **Get Started Today**
+## 📦 **Installation**
 
 ```bash
-# Clone and install
+# Clone the repository
 git clone https://github.com/your-username/NIS-TOOLKIT-SUIT.git
 cd NIS-TOOLKIT-SUIT
-bash install.sh
 
+# Install dependencies and setup
+bash install.sh
+pip install -r requirements.txt
+```
+
+## 🚀 **Getting Started**
+
+```bash
 # Create your first intelligent system
 nis-core init my-ai-project
 cd my-ai-project
@@ -254,14 +261,23 @@ cd my-ai-project
 # Add specialized agents
 nis-agent create analyzer --type reasoning
 nis-agent create processor --type action
+```
 
-# Validate and deploy
+## 📖 **Usage**
+
+```bash
+# Validate your system
 nis-core validate --comprehensive
+
+# Deploy your system
 nis-core deploy --environment local
+
+# Monitor system integrity
+nis-integrity audit full --project-path .
 ```
 
 **Ready to build the future of AI? Let's get started!** 🎯
 
 ---
 
-*The NIS-TOOLKIT-SUIT empowers anyone to build intelligent, trustworthy, and powerful AI systems. Whether you're solving healthcare challenges, optimizing financial systems, conducting scientific research, or creating the next breakthrough application - this toolkit gives you the foundation to succeed.*
+*The NIS-TOOLKIT-SUIT empowers anyone to build intelligent, trustworthy, and powerful AI systems. Whether you're solving healthcare challenges, optimizing financial systems, conducting scientific research, or creating the next impactful application - this toolkit gives you the foundation to succeed.*

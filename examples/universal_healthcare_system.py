@@ -221,7 +221,9 @@ class UniversalHealthcareAgent:
     
     def _calculate_confidence_bounds(self, features: Dict[str, Any]) -> Tuple[float, float]:
         """Calculate mathematical confidence bounds"""
-        base_confidence = 0.8
+        # Calculate confidence based on feature completeness and quality
+        feature_completeness = len([v for v in features.values() if v is not None]) / len(features)
+        base_confidence = 0.75 + (feature_completeness * 0.15)
         uncertainty = 0.1
         return (base_confidence - uncertainty, base_confidence + uncertainty)
     

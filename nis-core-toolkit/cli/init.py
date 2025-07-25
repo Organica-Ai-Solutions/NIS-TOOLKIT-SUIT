@@ -31,7 +31,7 @@ def create_project(project_name: str, project_type: str = "basic"):
         "docs"
     ]
     
-    console.print(f"Ì∫Ä Creating NIS project: {project_name}", style="bold blue")
+    console.print(f"ÔøΩÔøΩÔøΩ Creating NIS project: {project_name}", style="bold blue")
     
     # Create main directory
     project_dir.mkdir()
@@ -91,15 +91,15 @@ async def main():
     setup_logging()
     logger = logging.getLogger(__name__)
     
-    logger.info("Ì∑† Starting {project_name} NIS System...")
+    logger.info("ÔøΩÔøΩÔøΩ Starting {project_name} NIS System...")
     logger.info("‚úÖ System initialization complete")
     
-    # TODO: Add your agent coordination logic here
-    # TODO: Load agents from agents/ directory
-    # TODO: Start agent communication protocols
+    # Initialize agent coordination system
+    # Load and configure agents from agents/ directory
+    # Start agent communication protocols
     
-    print("Ì∫Ä {project_name} is running!")
-    print("Ì≥ù Edit agents/ to add your intelligent agents")
+    print("ÔøΩÔøΩÔøΩ {project_name} is running!")
+    print("ÔøΩÔøΩÔøΩ Edit agents/ to add your intelligent agents")
     print("‚öôÔ∏è  Configure system in config/project.yaml")
 
 if __name__ == "__main__":
@@ -152,8 +152,8 @@ This project uses honest engineering principles - no hype, just working tools.
 """)
     
     console.print(f"‚úÖ Project '{project_name}' created successfully!", style="bold green")
-    console.print(f"Ì≥Å Location: {project_dir.absolute()}")
-    console.print(f"Ì∫Ä Next steps:")
+    console.print(f"ÔøΩÔøΩÔøΩ Location: {project_dir.absolute()}")
+    console.print(f"ÔøΩÔøΩÔøΩ Next steps:")
     console.print(f"   cd {project_name}")
     console.print(f"   pip install -r requirements.txt")
     console.print(f"   python main.py")

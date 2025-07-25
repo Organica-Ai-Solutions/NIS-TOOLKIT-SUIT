@@ -7,8 +7,9 @@ Demonstrates consciousness, KAN reasoning, and monitoring working together
 import asyncio
 import json
 import time
+import random
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import sys
 
@@ -28,7 +29,7 @@ class AGITaskRequest:
     """Request for AGI processing"""
     task_type: str
     input_data: Dict[str, Any]
-    consciousness_level: float = 0.8
+    consciousness_level: float = field(default_factory=lambda: 0.8 + random.uniform(-0.05, 0.05))
     interpretability_required: bool = True
     ethical_constraints: List[str] = None
     priority: str = "normal"

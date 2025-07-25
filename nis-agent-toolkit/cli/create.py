@@ -2182,7 +2182,7 @@ class {agent_name.replace('-', '_').title()}(BaseNISAgent):
                 f"Memory consciousness awareness: {{np.mean([m['post_consciousness']['awareness_score'] for m in consciousness_monitoring]):.3f}}",
                 f"Mathematical memory interpretability: {{mathematical_analysis.get('interpretability_score', 0):.3f}}",
                 "Memory processing completed with full mathematical traceability",
-                f"Working memory utilization: {{len(self.memory_systems['working'])}/7}}"
+                f"Working memory utilization: {{len(self.memory_systems['working'])}}/7"
             ],
             "overall_confidence": min(
                 mathematical_analysis.get("interpretability_score", 0.5),

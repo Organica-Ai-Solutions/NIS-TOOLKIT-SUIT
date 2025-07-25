@@ -1,0 +1,41 @@
+# NIS Toolkit Suite - Dependencies
+# Core dependencies for all toolkits
+
+# CLI and Console Interface
+click>=8.0.0
+rich>=13.0.0
+typer>=0.9.0
+
+# Async and Concurrency
+asyncio-mqtt>=0.11.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+pydantic>=2.0.0
+
+# Machine Learning (Optional - only if using KAN features)
+scikit-learn>=1.3.0
+# torch>=2.0.0  # Uncomment if using PyTorch-based KAN
+# tensorflow>=2.13.0  # Uncomment if using TensorFlow-based KAN
+
+# Development and Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
+# Configuration and Serialization
+PyYAML>=6.0
+toml>=0.10.0
+
+# Monitoring and Logging
+structlog>=23.0.0
+
+# Optional: Advanced features
+# networkx>=3.0  # For complex agent coordination graphs
+# PIL>=10.0.0  # For vision agent capabilities
+# opencv-python>=4.8.0  # For advanced computer vision
+
+# Documentation
+# sphinx>=7.0.0  # Uncomment for documentation generation
+# myst-parser>=2.0.0  # Uncomment for Markdown documentation 
