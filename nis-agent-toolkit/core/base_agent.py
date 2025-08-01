@@ -30,6 +30,9 @@ try:
 except ImportError:
     NETWORKX_AVAILABLE = False
 
+from nis_core_toolkit.core import PINN, LaplaceTransform
+from nis_core_toolkit.core.bitnet import BitNetAgent
+
 class AgentState(Enum):
     """Enhanced agent operational states"""
     IDLE = "idle"
@@ -97,16 +100,15 @@ class BaseNISAgent(ABC):
     Enhanced abstract base class for all NIS agents
     
     Features:
-    - Consciousness integration with self-awareness and bias detection
-    - KAN mathematical reasoning with interpretability guarantees
-    - Advanced coordination and communication capabilities
-    - Comprehensive monitoring and metrics
-    - Safety and ethical constraint enforcement
+    - Unified Pipeline: Laplace -> Consciousness -> KAN -> PINN -> Safety
+    - Generative Simulation: For creating physically realistic models
+    - BitNet Integration: For offline-first capabilities
+    - And all previous features...
     """
     
     def __init__(self, agent_id: str, agent_type: str = "generic", 
                  consciousness_level: float = 0.8, safety_level: str = "medium",
-                 domain: str = "general"):
+                 domain: str = "general", bitnet_enabled: bool = False):
         self.agent_id = agent_id
         self.agent_type = agent_type
         self.domain = domain
@@ -116,6 +118,9 @@ class BaseNISAgent(ABC):
         # Enhanced agent configuration
         self.consciousness_level = consciousness_level
         self.safety_level = SafetyLevel(safety_level)
+        self.bitnet_enabled = bitnet_enabled
+        self.pinn_validator = PINN() if self.bitnet_enabled else None
+        self.laplace_transformer = LaplaceTransform() if self.bitnet_enabled else None
         
         # Agent capabilities and tools
         self.capabilities = set()
@@ -152,6 +157,11 @@ class BaseNISAgent(ABC):
         self._initialize_consciousness()
         self._initialize_kan_reasoning()
         
+        if self.bitnet_enabled:
+            self.add_capability("generative_simulation")
+            self.add_capability("bitnet_offline_inference")
+            self.add_capability("pinn_validation")
+
         self.logger.info(f"Enhanced {agent_type} agent initialized: {agent_id}")
         self.logger.info(f"Consciousness level: {consciousness_level:.1%}, Safety: {safety_level}")
     
@@ -218,12 +228,24 @@ class BaseNISAgent(ABC):
         """
         pass
     
+    async def generate_simulation(self, decision: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate a physically realistic simulation based on a decision.
+        This is a core component of the NIS Protocol v3.1.
+        
+        Args:
+            decision: The decision data from the decide() method.
+            
+        Returns:
+            A dictionary containing the simulation results, such as a 3D model,
+            performance data, and a technical report.
+        """
+        pass
+
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Enhanced main processing pipeline with consciousness and KAN integration
-        
-        This is the core agent processing loop that all agents follow,
-        now enhanced with consciousness reflection and mathematical reasoning.
+        The unified NIS Protocol v3.1 processing pipeline.
+        Laplace -> Consciousness -> KAN -> PINN -> Safety
         """
         
         start_time = datetime.now()
@@ -232,14 +254,30 @@ class BaseNISAgent(ABC):
             self.state = AgentState.PROCESSING
             self.metrics.last_activity = start_time
             
-            # Pre-processing consciousness reflection
-            await self._consciousness_reflection("pre_processing", input_data)
+            # 1. Laplace Transform for physical realism
+            transformed_input = await self.laplace_transformer.transform(input_data) if self.laplace_transformer else input_data
+
+            # 2. Consciousness-aware observation
+            observation = await self._consciousness_aware_observe(transformed_input)
             
-            # Enhanced agent pipeline with consciousness integration
-            observation = await self._consciousness_aware_observe(input_data)
+            # 3. KAN-enhanced decision making
             decision = await self._kan_enhanced_decide(observation)
-            action = await self._safety_validated_act(decision)
+
+            # 4. PINN Validation for physical constraints
+            if self.pinn_validator:
+                pinn_validation = await self.pinn_validator.validate(decision)
+                if not pinn_validation["compliant"]:
+                    raise ValueError(f"PINN validation failed: {pinn_validation['reason']}")
+                decision["pinn_validation"] = pinn_validation
             
+            # 5. Safety-validated action
+            action = await self._safety_validated_act(decision)
+
+            # 6. Generative Simulation (if applicable)
+            if self.bitnet_enabled and "generate_simulation" in decision.get("action_type", ""):
+                simulation_result = await self.generate_simulation(decision)
+                action["simulation_result"] = simulation_result
+
             # Post-processing consciousness reflection
             await self._consciousness_reflection("post_processing", action)
             

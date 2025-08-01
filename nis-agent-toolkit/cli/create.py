@@ -28,7 +28,8 @@ def create_agent(agent_name: str, agent_type: str):
         "reasoning": create_reasoning_template,
         "vision": create_vision_template,
         "memory": create_memory_template,
-        "action": create_action_template
+        "action": create_action_template,
+        "bitnet": create_bitnet_template
     }
     
     if agent_type not in template_map:
@@ -3864,4 +3865,74 @@ if __name__ == "__main__":
     console.print(f"📍 Location: {agent_dir.absolute()}")
     console.print("🧠 Features: Consciousness integration, KAN reasoning, secure action execution")
     console.print("📊 Test with: python test_enhanced_action_agent.py")
+
+def create_bitnet_template(agent_dir: Path, agent_name: str):
+    """Create a BitNet agent template for offline-first capabilities"""
+    
+    agent_file = agent_dir / f"{agent_name}.py"
+    agent_file.write_text(f'''#!/usr/bin/env python3
+"""
+{agent_name} - BitNet Powered Agent
+Created with NIS Agent Toolkit for offline-first, high-performance reasoning.
+"""
+
+import asyncio
+from nis_agent_toolkit.core.base_agent import BaseNISAgent
+from nis_core_toolkit.llm.providers.bitnet_provider import BitNetProvider
+
+class {agent_name.replace('-', '_').title()}(BaseNISAgent):
+    """
+    An agent powered by a local BitNet model for efficient, offline inference.
+    """
+    
+    def __init__(self):
+        super().__init__(
+            agent_id="{agent_name}",
+            agent_type="bitnet_reasoning",
+            bitnet_enabled=True
+        )
+        
+        # Configure the BitNet provider
+        bitnet_config = {{
+            "model_path": "models/bitnet/BitNet-v2-1.5B.gguf",
+            "executable_path": "path/to/your/bitnet/executable"
+        }}
+        self.bitnet_provider = BitNetProvider(bitnet_config)
+        
+        self.add_capability("offline_inference")
+
+    async def observe(self, input_data: dict) -> dict:
+        # Your observation logic here
+        return {{"problem": input_data.get("problem", "")}}
+
+    async def decide(self, observation: dict) -> dict:
+        # Use the BitNet provider for decision making
+        problem = observation.get("problem", "")
+        messages = [{{"role": "user", "content": problem}}]
+        
+        decision = await self.bitnet_provider.generate(messages)
+        return {{"response": decision.content}}
+
+    async def act(self, decision: dict) -> dict:
+        # Your action logic here
+        return {{"response": decision.get("response", "No action taken.")}}
+
+    async def generate_simulation(self, decision: dict) -> dict:
+        # Your generative simulation logic here
+        # This is where you would use the BitNet model to generate
+        # a 3D model, simulate its performance, and produce a report.
+        return {{"simulation_status": "not_implemented"}}
+''')
+
+    config_file = agent_dir / "config.yaml"
+    config_file.write_text(f'''agent:
+  name: {agent_name}
+  type: bitnet_reasoning
+  version: 1.0.0
+
+capabilities:
+  - offline_inference
+  - generative_simulation
+  - pinn_validation
+''')
 

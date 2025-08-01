@@ -1,344 +1,107 @@
-# 🚀 Quick Start: Build Your First Intelligent System
+# NIS Toolkit Suite - Quick Start Guide
 
-**Get from zero to working AI system in 30 minutes**
-
----
-
-## 🎯 **Choose Your Problem Domain**
-
-Before we start, think about what problem you want to solve:
-
-### **🏥 Healthcare & Medical**
-- Patient diagnosis assistance
-- Medical image analysis
-- Drug discovery optimization
-- Treatment planning
-
-### **💰 Finance & Business**
-- Market analysis and trading
-- Risk assessment
-- Customer behavior prediction
-- Supply chain optimization
-
-### **🔬 Research & Science**
-- Data analysis and pattern discovery
-- Literature review automation
-- Hypothesis generation
-- Experiment planning
-
-### **🎨 Creative & Media**
-- Content generation
-- Design optimization
-- User experience enhancement
-- Creative collaboration
-
-### **🏭 Industrial & IoT**
-- Predictive maintenance
-- Quality control
-- Process optimization
-- Resource management
+Welcome to the **NIS Toolkit Suite**, the official development environment for the NIS Protocol. This guide will walk you through setting up your environment and creating your first NIS implementation from scratch.
 
 ---
 
-## ⚡ **30-Minute Setup**
+## 1. Installation
 
-### **Step 1: Installation (5 minutes)**
+First, clone the `NIS-TOOLKIT-SUIT` repository and install the required dependencies.
 
 ```bash
-# Clone the toolkit
-git clone https://github.com/your-username/NIS-TOOLKIT-SUIT.git
+# Clone the main toolkit repository
+git clone https://github.com/Organica-Ai-Solutions/NIS-TOOLKIT-SUIT.git
 cd NIS-TOOLKIT-SUIT
 
-# Install dependencies
-bash install.sh
-
-# Verify installation
-nis-core --version
-nis-agent --version
+# Install all required dependencies
+pip install -r requirements.txt
 ```
 
-### **Step 2: Initialize Your Project (5 minutes)**
-
-```bash
-# Create a new intelligent system project
-nis-core init my-intelligent-system
-
-# Navigate to your project
-cd my-intelligent-system
-
-# Explore the generated structure
-ls -la
-```
-
-**Generated Project Structure:**
-```
-my-intelligent-system/
-├── agents/              # Your AI agents will live here
-├── config/              # System configuration
-├── data/                # Input data and models
-├── logs/                # System logs and monitoring
-├── tests/               # Automated tests
-├── docker-compose.yml   # Container orchestration
-├── requirements.txt     # Python dependencies
-└── README.md           # Project-specific documentation
-```
-
-### **Step 3: Create Your First Agent (10 minutes)**
-
-```bash
-# Create specialized agents for your domain
-nis-agent create data-analyzer --type reasoning
-nis-agent create pattern-detector --type vision  
-nis-agent create decision-maker --type action
-nis-agent create knowledge-keeper --type memory
-```
-
-**What each agent does:**
-- **Reasoning Agent**: Analyzes data and draws logical conclusions
-- **Vision Agent**: Processes images, videos, and visual data
-- **Action Agent**: Makes decisions and executes tasks safely
-- **Memory Agent**: Stores and retrieves information intelligently
-
-### **Step 4: Configure for Your Domain (5 minutes)**
-
-Edit `config/system.yaml` to specify your domain:
-
-```yaml
-# Example for healthcare domain
-system:
-  name: "Medical Analysis System"
-  domain: "healthcare"
-  
-agents:
-  data-analyzer:
-    specialized_for: "medical_data"
-    safety_level: "high"
-    interpretability: "required"
-  
-  pattern-detector:
-    input_types: ["medical_images", "lab_results"]
-    accuracy_threshold: 0.95
-  
-  decision-maker:
-    risk_tolerance: "conservative"
-    human_approval: "required"
-  
-  knowledge-keeper:
-    privacy_mode: "hipaa_compliant"
-    retention_policy: "encrypted"
-```
-
-### **Step 5: Test Your System (5 minutes)**
-
-```bash
-# Validate your configuration
-nis-core validate --comprehensive
-
-# Run a simulation
-nis-agent simulate --scenario basic-analysis
-
-# Check agent coordination
-nis-core test --integration
-```
-
-**Expected Output:**
-```
-✅ System Configuration: Valid
-✅ Agent Communication: Working  
-✅ Safety Checks: Passed
-✅ Integration Tests: All Passed
-
-🎉 Your intelligent system is ready!
-```
+This installs the NIS Developer Toolkit (NDT), NIS Agent Toolkit (NAT), and NIS Integrity Toolkit (NIT), giving you everything you need to build, test, and validate your projects.
 
 ---
 
-## 🧠 **Understanding Your System**
+## 2. Create Your First NIS Project
 
-### **How Agents Work Together**
+The NIS Developer Toolkit (`nis-core-toolkit`) provides a powerful `init` command to scaffold a new project for you. This is the recommended way to start any new NIS implementation.
 
-```python
-# This is what happens when you run your system
-class IntelligentSystem:
-    def solve_problem(self, input_data):
-        # 1. Data Analyzer examines the input
-        analysis = self.data_analyzer.observe(input_data)
-        
-        # 2. Pattern Detector finds important patterns
-        patterns = self.pattern_detector.analyze(analysis)
-        
-        # 3. Knowledge Keeper provides relevant context
-        context = self.knowledge_keeper.retrieve(patterns)
-        
-        # 4. Decision Maker synthesizes everything
-        decision = self.decision_maker.decide(analysis, patterns, context)
-        
-        # 5. Action Agent executes safely
-        result = self.action_agent.act(decision)
-        
-        return result
+Run the following command from the root of the `NIS-TOOLKIT-SUIT` directory:
+
+```bash
+# Usage: python nis-core-toolkit/cli/main.py init <your-project-name>
+python nis-core-toolkit/cli/main.py init my-first-nis-project
 ```
 
-### **Key Principles Your System Uses**
+This command creates a new directory (`my-first-nis-project`) with a complete, best-practices structure for a NIS Protocol project.
 
-1. **🧠 Consciousness**: Agents are self-aware and can reflect on their decisions
-2. **🧮 Mathematical Guarantees**: Decisions come with confidence scores and error bounds
-3. **🤝 Collaboration**: Agents work together, not in isolation
-4. **🛡️ Safety**: Multiple layers of validation before any action
+### What's Inside Your New Project?
+
+The `init` command generates the following structure:
+
+```
+my-first-nis-project/
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── agents/
+│   └── .gitkeep
+├── config/
+│   ├── agent_config.yml
+│   └── system_config.yml
+├── data/
+│   └── .gitkeep
+├── notebooks/
+│   └── .gitkeep
+├── scripts/
+│   └── .gitkeep
+└── src/
+    ├── __init__.py
+    ├── cognitive_agents/
+    ├── core/
+    ├── llm/
+    ├── memory/
+    └── neural_hierarchy/
+```
+
+-   **`agents/`**: Your custom agents, created using the Agent Toolkit (NAT), will live here.
+-   **`config/`**: Configuration files for your system and agents.
+-   **`data/`**: A place for local data, datasets, and models.
+-   **`notebooks/`**: Jupyter notebooks for exploration and analysis.
+-   **`scripts/`**: Utility and automation scripts.
+-   **`src/`**: The core source code of your NIS implementation, pre-populated with the base logic from the official NIS Protocol.
 
 ---
 
-## 🎯 **Your First Real Problem**
+## 3. Develop Your First Agent
 
-Let's solve a practical problem with your new system:
-
-### **Example: Document Analysis System**
+Now that your project is set up, you can start building. Use the NIS Agent Toolkit (NAT) to create your first agent within the new project.
 
 ```bash
-# Configure for document analysis
-cat > config/document-analysis.yaml << EOF
-system:
-  name: "Document Intelligence System"
-  
-task:
-  type: "document_analysis"
-  input: "research_papers"
-  output: "key_insights"
-  
-agents:
-  data-analyzer:
-    focus: "text_processing"
-  pattern-detector:
-    focus: "concept_extraction"
-  knowledge-keeper:
-    focus: "research_database"
-  decision-maker:
-    focus: "insight_synthesis"
-EOF
+# Navigate into your new project directory
+cd my-first-nis-project
 
-# Process your first document
-echo "Artificial intelligence is revolutionizing healthcare..." > sample_document.txt
-nis-core process sample_document.txt --config document-analysis.yaml
+# Use the NAT to create a new "reasoning" agent
+# Note: We call the script from its location within the NIS-TOOLKIT-SUIT
+python ../nis-agent-toolkit/cli/main.py create reasoning my-reasoning-agent --consciousness-level 0.9 --kan-enabled
 ```
 
-**Expected Intelligent Analysis:**
-```
-📄 Document: sample_document.txt
-🧠 Analysis: Healthcare AI transformation trends
-🔍 Key Patterns: [AI adoption, healthcare impact, technology trends]
-💡 Insights: 
-   - 85% confidence: Healthcare AI market growing rapidly
-   - 92% confidence: Patient outcomes improving with AI
-   - 78% confidence: Integration challenges remain
-📊 Recommendations: Focus on ethical AI implementation
-```
+This will create a new agent named `my-reasoning-agent` inside the `agents/` directory of your project, complete with high consciousness and KAN mathematical reasoning capabilities.
 
 ---
 
-## 🚀 **Next Steps**
+## 4. Next Steps
 
-### **🎓 Learn Core Concepts**
-```bash
-# Interactive tutorial system
-nis-core learn --interactive
+Your NIS project is now set up and contains its first agent. From here, you can:
 
-# Specific topics
-nis-core learn consciousness
-nis-core learn multi-agent-coordination  
-nis-core learn mathematical-guarantees
-```
+-   **Develop Your Agent's Logic:** Edit the files in `agents/my-reasoning-agent/` to implement its unique behavior.
+-   **Build the Core System:** Add your custom logic to the `src/` directory to orchestrate your agents.
+-   **Test Your Agent:** Use `nis-agent-toolkit` to run tests:
+    ```bash
+    python ../nis-agent-toolkit/cli/main.py test my-reasoning-agent
+    ```
+-   **Audit for Integrity:** Use the `nis-integrity-toolkit` to validate your project's quality and honesty:
+    ```bash
+    python ../nis-integrity-toolkit/cli/main.py audit full --project-path .
+    ```
 
-### **🛠️ Build More Complex Systems**
-```bash
-# Add more specialized agents
-nis-agent create web-scraper --type action
-nis-agent create sentiment-analyzer --type reasoning
-nis-agent create report-generator --type memory
-
-# Create multi-system coordination
-nis-core orchestrate --systems analysis,reporting,monitoring
-```
-
-### **🌐 Deploy to Production**
-```bash
-# Local deployment
-nis-core deploy --environment local
-
-# Cloud deployment  
-nis-core deploy --environment cloud --provider aws
-
-# Monitor your system
-nis-core monitor --real-time
-```
-
-### **📚 Deep Dive Learning**
-
-1. **[Consciousness in AI](consciousness.md)** - How agents become self-aware
-2. **[Mathematical Foundations](mathematics.md)** - The math that makes it work
-3. **[Multi-Agent Coordination](coordination.md)** - Advanced system orchestration
-4. **[Domain Adaptation](domains.md)** - Specialize for your field
-5. **[Production Deployment](deployment.md)** - Scale to real users
-
----
-
-## 🆘 **Need Help?**
-
-### **Common Issues**
-
-**🐛 "Agent not responding"**
-```bash
-# Check agent health
-nis-agent status --all
-
-# Restart specific agent
-nis-agent restart data-analyzer
-```
-
-**🔧 "Configuration invalid"**
-```bash
-# Validate configuration
-nis-core validate --config config/system.yaml
-
-# Reset to defaults
-nis-core reset --config
-```
-
-**⚡ "Performance slow"**
-```bash
-# Check system resources
-nis-core monitor --performance
-
-# Optimize configuration
-nis-core optimize --auto
-```
-
-### **Get Support**
-
-- 📖 **[Full Documentation](../README.md)**
-- 💬 **[Community Forum](community/)**
-- 🐛 **[Report Issues](issues/)**
-- 📧 **[Direct Support](support/)**
-
----
-
-## 🎉 **Congratulations!**
-
-You've just built your first intelligent multi-agent system! 
-
-**What you've accomplished:**
-- ✅ Created 4 specialized AI agents
-- ✅ Configured them to work together
-- ✅ Processed real data with intelligence
-- ✅ Got mathematically guaranteed results
-
-**Your system can now:**
-- 🧠 Reason about complex problems
-- 👁️ Analyze visual and textual data
-- 🤖 Make safe, validated decisions
-- 🧠 Learn and remember information
-
-**Ready for more?** Continue to **[Advanced Tutorials](tutorials/)** to build production-ready systems that solve real-world problems.
-
----
-
-*🌟 You're now part of the intelligent systems revolution. What will you build next?* 
+Congratulations! You have successfully created and started developing a new NIS implementation using the official toolkit. 
