@@ -1,18 +1,19 @@
 """
-NIS Protocol v3 - Enhanced Agent Base Class
+NIS Protocol v3.2.1 - Enhanced Agent Base Class
 
 This module provides a comprehensive base class for all NIS Protocol agents
-with integrated Kafka messaging, Redis caching, LangGraph workflows, 
-LangSmith observability, and advanced multi-agent collaboration capabilities.
+with integrated Provider Router, Enhanced Consciousness, MCP Protocol,
+and advanced multi-agent collaboration capabilities.
 
-Enhanced Features:
-- Unified infrastructure integration (Kafka + Redis + LangGraph + LangSmith)
-- Advanced multi-agent collaboration patterns
-- Self-audit integration with real-time monitoring
-- Async message handling and intelligent caching
+v3.2.1 Enhanced Features:
+- Dynamic Provider Router for intelligent AI model routing
+- Enhanced consciousness with introspection capabilities
+- MCP (Model Context Protocol) integration
+- Security-hardened dependencies (15+ vulnerabilities fixed)
+- Edge computing deployment support
+- Simplified agent interface for better usability
 - Performance tracking and health monitoring
 - Auto-recovery and resilience patterns
-- Dynamic workflow adaptation
 - Cost optimization and resource management
 """
 
@@ -77,6 +78,15 @@ from src.utils.integrity_metrics import (
 )
 from src.llm.llm_manager import LLMManager
 from src.utils.env_config import env_config
+
+# v3.2.1 New Components
+try:
+    from src.core.provider_router import ProviderRouter, RoutingRequest, RoutingResult
+    from src.agents.consciousness.enhanced_conscious_agent import EnhancedConsciousAgent
+    V321_FEATURES_AVAILABLE = True
+except ImportError:
+    V321_FEATURES_AVAILABLE = False
+    logger.warning("v3.2.1 features not available - running in compatibility mode")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

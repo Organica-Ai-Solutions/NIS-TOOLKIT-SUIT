@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""
+NIS TOOLKIT SUIT CLI Wrapper
+Simple wrapper to run the NIS CLI with proper Python module imports
+"""
+
+import os
+import sys
+from pathlib import Path
+
+# Add the project root to Python path
+PROJECT_ROOT = Path(__file__).parent.absolute()
+CLI_DIR = PROJECT_ROOT / "cli"
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(CLI_DIR))
+
+if __name__ == "__main__":
+    # Change to CLI directory for relative imports
+    original_cwd = os.getcwd()
+    os.chdir(CLI_DIR)
+    
+    try:
+        # Import and run the CLI
+        from nis_cli import main
+        exit_code = main()
+        sys.exit(exit_code)
+    finally:
+        # Restore original working directory
+        os.chdir(original_cwd)

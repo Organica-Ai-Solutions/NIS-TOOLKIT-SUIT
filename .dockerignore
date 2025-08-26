@@ -1,0 +1,104 @@
+# Docker build optimization - exclude unnecessary files
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python cache and temporary files
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.pytest_cache
+.coverage
+.tox
+.cache
+.mypy_cache
+
+# Documentation and README files (we'll copy specific ones)
+*.md
+docs/
+tutorials/
+AUDIT_RESULTS_SUMMARY.md
+UPGRADE_TO_V321.md
+DOCKER_GUIDE.md
+
+# Backup and temporary files
+*-BACKUP/
+*-backup/
+*.bak
+*.tmp
+*.temp
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+.venv
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Large binary files and datasets
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.pdf
+*.zip
+*.tar.gz
+*.tgz
+
+# Build artifacts
+build/
+dist/
+*.wheel
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints
+
+# Node modules (if any frontend)
+node_modules/
+npm-debug.log*
+
+# Assets that aren't needed in container
+assets/images/
+
+# Demo and example files that aren't needed for production
+demo*.py
+*_demo.py
+
+# Testing files for build optimization
+tests/
+test_*.py
+*_test.py

@@ -1,0 +1,83 @@
+# NIS TOOLKIT SUIT v3.2.1 - Prometheus Configuration
+# Monitoring and metrics collection for production deployment
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'nis-toolkit-monitor'
+    environment: 'docker'
+
+# Alert manager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # NIS Core Service
+  - job_name: 'nis-core'
+    static_configs:
+      - targets: ['nis-core:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # NIS Agent Service  
+  - job_name: 'nis-agent'
+    static_configs:
+      - targets: ['nis-agent:8000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # NIS Edge Service
+  - job_name: 'nis-edge'
+    static_configs:
+      - targets: ['nis-edge:8000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # Kafka metrics (if JMX exporter is enabled)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+    scrape_interval: 30s
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # Docker metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s
+
+# Remote write (for external monitoring services)
+# remote_write:
+#   - url: "https://your-remote-prometheus-endpoint/api/v1/write"
+#     basic_auth:
+#       username: "your-username"
+#       password: "your-password"

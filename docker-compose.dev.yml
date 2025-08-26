@@ -1,0 +1,81 @@
+# NIS TOOLKIT SUIT v3.2.1 - Development Override
+# Hot-reload and development-specific configurations
+
+version: '3.8'
+
+services:
+  nis-core:
+    build:
+      target: development
+    volumes:
+      - .:/app
+      - nis-data:/app/data
+      - nis-logs:/app/logs
+      - nis-cache:/app/cache
+    environment:
+      - NIS_ENVIRONMENT=development
+      - NIS_LOG_LEVEL=DEBUG
+      - PYTHONPATH=/app
+      - DEVELOPMENT_MODE=true
+      - HOT_RELOAD=true
+    command: >
+      sh -c "python -m pip install -e . &&
+             python -m examples.nis_v321_migration_demo"
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+      - "5678:5678"  # Debug port
+    stdin_open: true
+    tty: true
+
+  nis-agent:
+    build:
+      target: development
+    volumes:
+      - .:/app
+    environment:
+      - NIS_ENVIRONMENT=development
+      - NIS_LOG_LEVEL=DEBUG
+      - PYTHONPATH=/app
+      - DEVELOPMENT_MODE=true
+    command: >
+      sh -c "python -m pip install -e . &&
+             python -m nis-agent-toolkit.cli.main"
+    stdin_open: true
+    tty: true
+
+  # Development database (SQLite for simplicity)
+  dev-db:
+    image: sqlite:latest
+    container_name: nis-dev-db
+    volumes:
+      - nis-data:/data
+    networks:
+      - nis-network
+
+  # Development file server
+  dev-files:
+    image: nginx:alpine
+    container_name: nis-dev-files
+    ports:
+      - "8090:80"
+    volumes:
+      - ./examples:/usr/share/nginx/html/examples
+      - ./docs:/usr/share/nginx/html/docs
+    networks:
+      - nis-network
+
+  # Hot-reload for frontend development (if needed)
+  dev-frontend:
+    image: node:18-alpine
+    container_name: nis-dev-frontend
+    working_dir: /app
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - nis-network
+    profiles:
+      - frontend

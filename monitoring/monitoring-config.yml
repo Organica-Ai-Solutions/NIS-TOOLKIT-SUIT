@@ -1,0 +1,303 @@
+# NIS TOOLKIT SUIT v3.2.1 - Monitoring Configuration
+# Comprehensive monitoring and observability configuration
+
+# Global settings
+global:
+  service_name: "nis-toolkit"
+  environment: "production"  # development, staging, production
+  enable_monitoring: true
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  retention_time: "30d"
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  port: 9090
+  scrape_configs:
+    - job_name: "nis-toolkit"
+      static_configs:
+        - targets: ["localhost:8000"]
+      scrape_interval: 15s
+      metrics_path: "/metrics"
+    
+    - job_name: "nis-agents"
+      static_configs:
+        - targets: ["localhost:8001", "localhost:8002", "localhost:8003"]
+      scrape_interval: 10s
+      metrics_path: "/metrics"
+    
+    - job_name: "system-metrics"
+      static_configs:
+        - targets: ["localhost:9100"]  # node_exporter
+      scrape_interval: 15s
+    
+    - job_name: "redis"
+      static_configs:
+        - targets: ["localhost:9121"]  # redis_exporter
+      scrape_interval: 30s
+    
+    - job_name: "postgres"
+      static_configs:
+        - targets: ["localhost:9187"]  # postgres_exporter
+      scrape_interval: 30s
+
+  # Alert rules
+  rule_files:
+    - "alerts/nis-rules.yml"
+  
+  # AlertManager
+  alerting:
+    alertmanagers:
+      - static_configs:
+          - targets: ["localhost:9093"]
+        scheme: "http"
+        timeout: "10s"
+        api_version: "v2"
+
+# Grafana configuration
+grafana:
+  enabled: true
+  port: 3000
+  admin_user: "admin"
+  admin_password: "admin"  # Change in production!
+  
+  # Dashboard provisioning
+  dashboards:
+    - name: "NIS System Overview"
+      path: "dashboards/nis-system-overview.json"
+      folder: "NIS"
+    
+    - name: "NIS Agent Performance" 
+      path: "dashboards/nis-agent-performance.json"
+      folder: "NIS"
+  
+  # Data sources
+  datasources:
+    - name: "Prometheus"
+      type: "prometheus"
+      url: "http://localhost:9090"
+      access: "proxy"
+      is_default: true
+
+# AlertManager configuration
+alertmanager:
+  enabled: true
+  port: 9093
+  config_file: "alerts/alertmanager.yml"
+  
+  # Notification settings
+  notifications:
+    email:
+      enabled: false
+      smtp_server: "smtp.gmail.com:587"
+      from: "nis-alerts@example.com"
+      to: ["admin@example.com"]
+    
+    slack:
+      enabled: false
+      webhook_url: ""
+      channel: "#nis-alerts"
+      username: "NIS AlertManager"
+    
+    pagerduty:
+      enabled: false
+      service_key: ""
+
+# Logging configuration
+logging:
+  enabled: true
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "json"  # json, structured, standard
+  
+  # File logging
+  file:
+    enabled: true
+    path: "logs"
+    max_size: "100MB"
+    max_files: 10
+    rotate: true
+  
+  # Console logging
+  console:
+    enabled: true
+    colored: true
+    
+  # Remote logging (ELK/Fluentd)
+  remote:
+    enabled: false
+    type: "elasticsearch"  # elasticsearch, fluentd, syslog
+    host: "localhost"
+    port: 9200
+    index: "nis-logs"
+  
+  # Log aggregation
+  aggregation:
+    correlation_ids: true
+    structured_data: true
+    sensitive_fields:
+      - "password"
+      - "api_key"
+      - "token"
+      - "secret"
+
+# Health monitoring configuration
+health:
+  enabled: true
+  port: 8080
+  endpoint: "/health"
+  
+  # Check intervals
+  intervals:
+    system: 30s
+    agents: 15s
+    services: 60s
+    network: 30s
+  
+  # Health checks
+  checks:
+    system:
+      cpu_threshold: 80
+      memory_threshold: 85
+      disk_threshold: 90
+    
+    agents:
+      response_time_threshold: 5s
+      error_rate_threshold: 0.05
+      confidence_threshold: 0.7
+    
+    services:
+      redis: true
+      postgres: true
+      kafka: true
+    
+    network:
+      connectivity_test: "https://httpbin.org/status/200"
+      timeout: 5s
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8000
+  endpoint: "/metrics"
+  
+  # Custom metrics
+  custom:
+    business_metrics: true
+    performance_metrics: true
+    security_metrics: true
+  
+  # Retention
+  retention:
+    short_term: "1h"    # High frequency metrics
+    medium_term: "24h"  # Standard metrics  
+    long_term: "30d"    # Aggregated metrics
+  
+  # Export formats
+  export:
+    prometheus: true
+    json: true
+    csv: false
+
+# Tracing configuration (Future enhancement)
+tracing:
+  enabled: false
+  jaeger:
+    endpoint: "http://localhost:14268/api/traces"
+    service_name: "nis-toolkit"
+    sampler_type: "const"
+    sampler_param: 1
+
+# Performance monitoring
+performance:
+  enabled: true
+  
+  # Profiling
+  profiling:
+    cpu: true
+    memory: true
+    goroutines: false  # For Go services
+  
+  # Benchmarking
+  benchmarks:
+    enabled: true
+    interval: "1h"
+    retention: "7d"
+  
+  # SLA monitoring
+  sla:
+    response_time_p95: "2s"
+    response_time_p99: "5s"
+    availability: "99.9%"
+    error_rate: "0.1%"
+
+# Security monitoring
+security:
+  enabled: true
+  
+  # Audit logging
+  audit:
+    authentication: true
+    authorization: true
+    data_access: true
+    configuration_changes: true
+  
+  # Threat detection
+  threat_detection:
+    anomaly_detection: true
+    rate_limiting_violations: true
+    suspicious_patterns: true
+  
+  # Compliance
+  compliance:
+    gdpr: false
+    hipaa: false
+    pci_dss: false
+
+# Integration settings
+integrations:
+  # Docker integration
+  docker:
+    enabled: true
+    stats_collection: true
+    log_collection: true
+  
+  # Kubernetes integration
+  kubernetes:
+    enabled: false
+    namespace: "nis-toolkit"
+    service_monitor: true
+  
+  # Cloud integration
+  cloud:
+    aws:
+      enabled: false
+      cloudwatch: false
+    
+    gcp:
+      enabled: false
+      stackdriver: false
+    
+    azure:
+      enabled: false
+      monitor: false
+
+# Backup and disaster recovery
+backup:
+  enabled: true
+  
+  # Metrics backup
+  metrics:
+    interval: "24h"
+    retention: "90d"
+    storage: "local"  # local, s3, gcs
+  
+  # Configuration backup
+  config:
+    interval: "1h"
+    retention: "30d"
+    
+  # Dashboard backup
+  dashboards:
+    auto_export: true
+    version_control: true

@@ -1,0 +1,285 @@
+# NIS TOOLKIT SUIT v3.2.1 - Complete Development Environment
+# Production-ready orchestration with monitoring, caching, and messaging
+
+version: '3.8'
+
+networks:
+  nis-network:
+    driver: bridge
+    name: nis-network
+
+volumes:
+  nis-data:
+    name: nis-data
+  nis-logs:
+    name: nis-logs
+  nis-cache:
+    name: nis-cache
+  redis-data:
+    name: redis-data
+  kafka-data:
+    name: kafka-data
+  prometheus-data:
+    name: prometheus-data
+  grafana-data:
+    name: grafana-data
+
+services:
+  #=============================================================================
+  # Core NIS TOOLKIT SUIT Services
+  #=============================================================================
+  
+  nis-core:
+    build:
+      context: .
+      target: production
+      dockerfile: Dockerfile
+    container_name: nis-core-v321
+    hostname: nis-core
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    environment:
+      - NIS_ENVIRONMENT=docker
+      - NIS_LOG_LEVEL=INFO
+      - REDIS_HOST=redis
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ENABLE_MONITORING=true
+    volumes:
+      - nis-data:/app/data
+      - nis-logs:/app/logs
+      - nis-cache:/app/cache
+    networks:
+      - nis-network
+    depends_on:
+      - redis
+      - kafka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  nis-agent:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: nis-agent-v321
+    hostname: nis-agent
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - NIS_ENVIRONMENT=docker
+      - NIS_ROLE=agent
+      - REDIS_HOST=redis
+    volumes:
+      - nis-logs:/app/logs
+    networks:
+      - nis-network
+    depends_on:
+      - nis-core
+
+  nis-edge:
+    build:
+      context: .
+      target: edge
+      dockerfile: Dockerfile
+    container_name: nis-edge-v321
+    hostname: nis-edge
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    environment:
+      - NIS_ENVIRONMENT=edge
+      - NIS_MODE=lightweight
+    networks:
+      - nis-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  #=============================================================================
+  # Infrastructure Services
+  #=============================================================================
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: nis-redis
+    hostname: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - nis-network
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: nis-zookeeper
+    hostname: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - kafka-data:/var/lib/zookeeper
+    networks:
+      - nis-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: nis-kafka
+    hostname: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - kafka-data:/var/lib/kafka
+    networks:
+      - nis-network
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  #=============================================================================
+  # Monitoring Stack
+  #=============================================================================
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: nis-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - nis-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: nis-grafana
+    hostname: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=nis_admin_2024
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - nis-network
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: nis-node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - nis-network
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  #=============================================================================
+  # Development Tools
+  #=============================================================================
+
+  jupyter:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: nis-jupyter
+    hostname: jupyter
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=nis_toolkit_2024
+    volumes:
+      - .:/app
+      - nis-data:/app/data
+    networks:
+      - nis-network
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+    depends_on:
+      - nis-core
+
+  #=============================================================================
+  # Load Balancer (Optional)
+  #=============================================================================
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nis-nginx
+    hostname: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    networks:
+      - nis-network
+    depends_on:
+      - nis-core
+      - nis-agent
+    profiles:
+      - production
+
+#=============================================================================
+# Development Override
+#=============================================================================
+
+# For development with hot reload
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up

@@ -1,41 +1,104 @@
-# NIS Toolkit Suite - Dependencies
-# Core dependencies for all toolkits
+# NIS Protocol v3.2 - Production Dependencies with Security Fixes
+# Minimal working set with gradual ML integration
+# 
+# 🔒 SECURITY FIXES APPLIED:
+# • transformers: 4.35.2 → 4.53.0+ (fixes 15 vulnerabilities including RCE)
+# • starlette: 0.39.2 → 0.47.2+ (fixes 2 DoS vulnerabilities)  
+# • cryptography: updated to 43.0.0+ (latest secure version)
+# • urllib3: updated to 2.2.3+ (fixes multiple CVEs)
+# • pillow: updated to 10.4.0+ (fixes image processing vulnerabilities)
+# • requests: updated to 2.32.0+ (fixes auth bypass vulnerabilities)
+# • aiohttp: updated to 3.11.14+ (latest stable with security fixes)
+# • keras: excluded via constraints.txt (vulnerable to CVE-2024-55459)
+#
+# INSTALL COMMAND: pip install -r requirements.txt -c constraints.txt
 
-# CLI and Console Interface
+# ===== CORE WEB FRAMEWORK (LATEST SECURE VERSIONS) =====
+fastapi>=0.116.0,<0.120.0
+uvicorn[standard]>=0.29.0,<0.35.0
+starlette>=0.47.2,<1.0.0
+pydantic>=2.9.0,<3.0.0
+
+# ===== BASIC UTILITIES =====
+python-dotenv>=1.0.0
+requests>=2.32.0,<3.0.0
+aiohttp>=3.11.14,<4.0.0
+aiofiles>=23.0.0
 click>=8.0.0
-rich>=13.0.0
-typer>=0.9.0
+python-dateutil>=2.8.0
+pytz>=2023.0
+colorlog>=6.0.0
+tqdm>=4.65.0
 
-# Async and Concurrency
-asyncio-mqtt>=0.11.0
+# ===== WEB SEARCH & SCRAPING =====
+beautifulsoup4>=4.12.0,<5.0.0
+lxml>=4.9.0,<5.0.0
 
-# Data Processing
-numpy>=1.24.0
-pandas>=2.0.0
-pydantic>=2.0.0
+# ===== DATABASE AND CACHING =====
+redis>=4.5.0,<5.0.0
+aiokafka>=0.8.0,<1.0.0
+kafka-python>=2.0.2,<3.0.0
+sqlalchemy>=2.0.0,<3.0.0
 
-# Machine Learning (Optional - only if using KAN features)
-scikit-learn>=1.3.0
-# torch>=2.0.0  # Uncomment if using PyTorch-based KAN
-# tensorflow>=2.13.0  # Uncomment if using TensorFlow-based KAN
+# ===== SCIENTIFIC COMPUTING =====
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0,<2.0.0
+pandas>=2.0.0,<3.0.0
 
-# Development and Testing
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
+# ===== VISUALIZATION LIBRARIES =====
+matplotlib>=3.6.0,<4.0.0
+plotly>=5.15.0,<6.0.0
+seaborn>=0.12.0,<1.0.0
 
-# Configuration and Serialization
-PyYAML>=6.0
-toml>=0.10.0
+# ===== PYTORCH (MINIMAL) =====
+torch>=2.0.0,<3.0.0
+torchvision>=0.15.0,<1.0.0
+torchaudio>=2.0.0,<3.0.0
 
-# Monitoring and Logging
-structlog>=23.0.0
+# ===== TENSORFLOW/KERAS (SECURITY UPDATED) =====
+tensorflow==2.15.1
+tf-keras==2.15.1
+# keras dependency removed due to security vulnerability CVE-2024-55459
+# Using tf-keras instead for Keras functionality
 
-# Optional: Advanced features
-# networkx>=3.0  # For complex agent coordination graphs
-# PIL>=10.0.0  # For vision agent capabilities
-# opencv-python>=4.8.0  # For advanced computer vision
+# ===== TRANSFORMERS (SECURITY FIXED VERSIONS) =====
+transformers>=4.53.0,<5.0.0
+tokenizers>=0.15.0,<1.0.0
+tiktoken>=0.5.0,<1.0.0
+openai>=1.0.0,<2.0.0
 
-# Documentation
-# sphinx>=7.0.0  # Uncomment for documentation generation
-# myst-parser>=2.0.0  # Uncomment for Markdown documentation 
+# ===== LANGCHAIN ECOSYSTEM (SECURITY UPDATED) =====
+langchain>=0.3.0,<1.0.0
+langchain-core>=0.3.0,<1.0.0
+langgraph>=0.6.0,<1.0.0
+langsmith>=0.4.0,<1.0.0
+
+# ===== NVIDIA PACKAGES =====
+nvidia-ml-py3>=7.352.0,<8.0.0
+
+# ===== ADDITIONAL ML PACKAGES =====
+scikit-learn>=1.3.0,<2.0.0
+datasets>=2.10.0,<3.0.0
+accelerate>=0.20.0,<1.0.0
+hnswlib>=0.8.0,<1.0.0
+
+# Duplicate removed - using first instance above
+
+# ===== OPTIONAL ML DEPENDENCIES (Install separately if needed) =====
+# sentence-transformers==2.2.2  # Enable after dependency conflicts resolved
+# nemo_toolkit[all]>=2.4.0      # Enable for full NVIDIA NeMo integration
+
+# ===== DEVELOPMENT AND TESTING =====
+pytest>=7.0.0,<8.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+
+# ===== SECURITY AND AUTHENTICATION (LATEST SECURE VERSIONS) =====
+cryptography>=45.0.0,<50.0.0
+pyjwt>=2.10.0,<3.0.0
+urllib3>=2.5.0,<3.0.0
+pillow>=10.4.0,<11.0.0
+
+# ===== ADDITIONAL UTILITIES =====
+msgpack>=1.0.0,<2.0.0
+orjson>=3.8.0,<4.0.0
+structlog>=23.0.0,<24.0.0

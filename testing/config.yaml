@@ -1,0 +1,153 @@
+# NIS TOOLKIT SUIT v3.2.1 - Testing Configuration
+# Comprehensive testing framework configuration
+
+# Test Runner Configuration
+test_runner:
+  framework: pytest
+  parallel: true
+  max_workers: 4
+  timeout: 300
+  verbose: true
+  
+# Coverage Configuration  
+coverage:
+  enabled: true
+  min_threshold: 80.0
+  source_dirs:
+    - "nis-core-toolkit/src"
+    - "nis-agent-toolkit/core"
+    - "nis-integrity-toolkit"
+  exclude_patterns:
+    - "*/tests/*"
+    - "*/test_*"
+    - "*/__pycache__/*"
+    - "*/migrations/*"
+  formats:
+    - html
+    - xml
+    - term
+  fail_under: 75.0
+
+# Performance Benchmarking
+benchmarks:
+  enabled: true
+  warmup_rounds: 3
+  test_rounds: 10
+  memory_profiling: true
+  cpu_profiling: true
+  baseline_file: "testing/benchmarks/baseline.json"
+  thresholds:
+    max_execution_time: 5.0  # seconds
+    max_memory_usage: 512    # MB
+    performance_regression: 10  # percentage
+
+# Security Scanning
+security:
+  enabled: true
+  tools:
+    - bandit      # Security linter for Python
+    - safety      # Dependency vulnerability scanner
+    - semgrep     # Static analysis security scanner
+  severity_threshold: "medium"
+  exclude_patterns:
+    - "*/tests/*"
+    - "*/examples/*"
+  fail_on_vulnerability: true
+
+# Code Quality Analysis
+quality:
+  enabled: true
+  tools:
+    - flake8      # Style and error linting
+    - black       # Code formatting
+    - mypy        # Type checking
+    - pylint      # Comprehensive analysis
+    - isort       # Import sorting
+  auto_fix: false
+  style_guide: "pep8"
+  line_length: 88
+  
+# Integration Testing
+integration:
+  enabled: true
+  docker_compose_file: "docker-compose.test.yml"
+  setup_timeout: 120
+  teardown_timeout: 60
+  test_data_dir: "testing/fixtures"
+  
+# Load Testing
+load_testing:
+  enabled: false
+  max_virtual_users: 100
+  test_duration: 300  # seconds
+  ramp_up_time: 60    # seconds
+  target_rps: 50      # requests per second
+
+# Test Discovery
+discovery:
+  test_patterns:
+    - "test_*.py"
+    - "*_test.py" 
+    - "tests/*.py"
+  test_directories:
+    - "tests"
+    - "nis-core-toolkit/tests"
+    - "nis-agent-toolkit/tests"
+    - "nis-integrity-toolkit/tests"
+    - "testing"
+  ignore_patterns:
+    - "__pycache__"
+    - "*.pyc"
+    - ".pytest_cache"
+
+# Reporting
+reporting:
+  enabled: true
+  formats:
+    - junit       # JUnit XML for CI/CD
+    - html        # HTML reports
+    - json        # JSON for programmatic access
+    - terminal    # Console output
+  output_dir: "testing/reports"
+  archive_reports: true
+  max_archived_reports: 10
+  
+  # Report sections
+  sections:
+    - test_results
+    - coverage
+    - performance
+    - security
+    - quality
+    - dependencies
+
+# CI/CD Integration
+ci_cd:
+  github_actions: true
+  gitlab_ci: true
+  jenkins: true
+  docker_integration: true
+  
+# Notifications
+notifications:
+  enabled: false
+  slack_webhook: ""
+  email_recipients: []
+  on_failure: true
+  on_success: false
+  on_coverage_drop: true
+  on_security_issues: true
+
+# Test Data Management
+test_data:
+  fixtures_dir: "testing/fixtures"
+  mock_data: true
+  database_seeding: false
+  cleanup_after_tests: true
+  
+# Debugging
+debugging:
+  pdb_on_failure: false
+  capture_logs: true
+  log_level: "INFO"
+  preserve_test_outputs: false

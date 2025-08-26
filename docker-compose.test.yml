@@ -1,0 +1,262 @@
+# NIS TOOLKIT SUIT v3.2.1 - Testing Environment
+# Isolated testing environment with all necessary services
+
+version: '3.8'
+
+services:
+  # Main test runner service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: nis-test-runner
+    environment:
+      - NIS_ENVIRONMENT=testing
+      - NIS_DEBUG=true
+      - PYTHONPATH=/app
+      - PYTEST_CURRENT_TEST=""
+    volumes:
+      - .:/app
+      - ./testing/reports:/app/testing/reports
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker tests
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '🧪 Starting NIS Test Environment...' &&
+        pip install -e . &&
+        python -m pytest testing/ -v --tb=short --junit-xml=testing/reports/junit.xml
+      "
+    depends_on:
+      - test-redis
+      - test-postgres
+      - test-kafka
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pytest; print('Test runner ready')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching tests
+  test-redis:
+    image: redis:7-alpine
+    container_name: nis-test-redis
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    environment:
+      - REDIS_PASSWORD=test_password
+    command: redis-server --requirepass test_password
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL for database tests
+  test-postgres:
+    image: postgres:15-alpine
+    container_name: nis-test-postgres
+    environment:
+      POSTGRES_DB: nis_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - test-postgres-data:/var/lib/postgresql/data
+      - ./testing/fixtures/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d nis_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Kafka for message queue tests
+  test-kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: nis-test-kafka
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: test-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://test-kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9093:29092"
+    depends_on:
+      - test-zookeeper
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:29092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Zookeeper for Kafka
+  test-zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: nis-test-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2181"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus for monitoring tests
+  test-prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: nis-test-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=1h'  # Short retention for testing
+      - '--web.enable-lifecycle'
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana for dashboard tests
+  test-grafana:
+    image: grafana/grafana:10.0.0
+    container_name: nis-test-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=test_admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+    ports:
+      - "3001:3000"
+    volumes:
+      - test-grafana-data:/var/lib/grafana
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock external API service for integration tests
+  mock-api:
+    image: wiremock/wiremock:2.35.0
+    container_name: nis-test-mock-api
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./testing/fixtures/wiremock:/home/wiremock
+    command: ["--global-response-templating", "--verbose"]
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Load testing service
+  load-tester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: nis-load-tester
+    environment:
+      - TARGET_URL=http://test-runner:8000
+      - VIRTUAL_USERS=10
+      - TEST_DURATION=60s
+    volumes:
+      - ./testing/load:/app/testing/load
+      - ./testing/reports:/app/testing/reports
+    command: >
+      sh -c "
+        echo '⚡ Starting Load Tests...' &&
+        pip install locust &&
+        locust -f testing/load/locustfile.py --host=http://test-runner:8000 --users=10 --spawn-rate=2 --run-time=60s --headless --html=testing/reports/load_test_report.html
+      "
+    networks:
+      - test-network
+    profiles:
+      - load-testing
+
+  # Security scanner
+  security-scanner:
+    image: securecodewarrior/docker-safety:latest
+    container_name: nis-security-scanner
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '🔒 Running Security Scan...' &&
+        safety check --json --output testing/reports/safety.json ||
+        bandit -r nis-core-toolkit/src -f json -o testing/reports/bandit.json
+      "
+    profiles:
+      - security-scan
+
+  # Code quality checker
+  quality-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: nis-quality-checker
+    volumes:
+      - .:/app
+      - ./testing/reports:/app/testing/reports
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '✨ Running Code Quality Analysis...' &&
+        pip install flake8 black mypy pylint isort &&
+        flake8 nis-core-toolkit/src --output-file=testing/reports/flake8.txt --format=json ||
+        mypy nis-core-toolkit/src --json-report testing/reports/mypy.json ||
+        black --check --diff nis-core-toolkit/src > testing/reports/black.txt ||
+        echo 'Quality analysis completed'
+      "
+    profiles:
+      - quality-check
+
+# Networks
+networks:
+  test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes
+volumes:
+  test-postgres-data:
+    driver: local
+  test-grafana-data:
+    driver: local
+
+# Test execution profiles
+# docker-compose -f docker-compose.test.yml up test-runner              # Basic tests
+# docker-compose -f docker-compose.test.yml --profile load-testing up  # Include load testing
+# docker-compose -f docker-compose.test.yml --profile security-scan up # Include security scan
+# docker-compose -f docker-compose.test.yml --profile quality-check up # Include quality check

@@ -1,0 +1,251 @@
+# NIS TOOLKIT SUIT v3.2.1 - AlertManager Configuration
+# Handles alert routing, grouping, and notifications
+
+global:
+  # Global SMTP settings
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'nis-toolkit@example.com'
+  smtp_auth_username: 'nis-toolkit@example.com'
+  smtp_auth_password: 'your-app-password'
+  smtp_require_tls: true
+  
+  # Global Slack settings
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  
+  # Global resolve timeout
+  resolve_timeout: 5m
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Alert routing tree
+route:
+  group_by: ['alertname', 'severity', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'nis-default'
+  
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'nis-critical'
+      group_wait: 0s
+      repeat_interval: 5m
+      
+    # High priority alerts
+    - match:
+        severity: high  
+      receiver: 'nis-high-priority'
+      group_wait: 30s
+      repeat_interval: 15m
+      
+    # Agent-specific alerts
+    - match_re:
+        service: nis-agent-.*
+      receiver: 'nis-agent-team'
+      group_by: ['agent_type', 'severity']
+      
+    # Performance alerts
+    - match:
+        category: performance
+      receiver: 'nis-performance-team'
+      group_by: ['instance', 'severity']
+      
+    # Security alerts
+    - match:
+        category: security
+      receiver: 'nis-security-team'
+      group_wait: 0s
+      repeat_interval: 30m
+
+# Notification receivers
+receivers:
+  # Default receiver
+  - name: 'nis-default'
+    email_configs:
+      - to: 'nis-team@example.com'
+        subject: 'NIS Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ end }}
+    
+    slack_configs:
+      - channel: '#nis-alerts'
+        username: 'NIS AlertManager'
+        icon_emoji: ':warning:'
+        title: 'NIS Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          
+          *Instance:* {{ .Labels.instance }}
+          *Severity:* {{ .Labels.severity }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ end }}
+  
+  # Critical alerts receiver
+  - name: 'nis-critical'
+    email_configs:
+      - to: 'nis-oncall@example.com, nis-team@example.com'
+        subject: '🚨 CRITICAL NIS Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+    
+    slack_configs:
+      - channel: '#nis-critical'
+        username: 'NIS AlertManager'
+        icon_emoji: ':rotating_light:'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          
+          *Instance:* {{ .Labels.instance }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          
+          <{{ .Annotations.runbook_url }}|Runbook> | <{{ .Annotations.dashboard_url }}|Dashboard>
+          {{ end }}
+    
+    # PagerDuty integration for critical alerts
+    pagerduty_configs:
+      - routing_key: 'your-pagerduty-integration-key'
+        description: '{{ .GroupLabels.alertname }}: {{ .GroupLabels.instance }}'
+        client: 'NIS TOOLKIT SUIT AlertManager'
+        client_url: 'http://alertmanager.nis.local'
+        details:
+          summary: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+          description: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+          severity: '{{ .GroupLabels.severity }}'
+          service: '{{ .GroupLabels.service }}'
+  
+  # High priority receiver
+  - name: 'nis-high-priority'
+    email_configs:
+      - to: 'nis-team@example.com'
+        subject: '⚠️  High Priority NIS Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          ⚠️ HIGH PRIORITY ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ end }}
+    
+    slack_configs:
+      - channel: '#nis-alerts'
+        username: 'NIS AlertManager'
+        icon_emoji: ':warning:'
+        title: '⚠️ High Priority: {{ .GroupLabels.alertname }}'
+        color: 'warning'
+  
+  # Agent team receiver
+  - name: 'nis-agent-team'
+    slack_configs:
+      - channel: '#nis-agents'
+        username: 'NIS Agent Monitor'
+        icon_emoji: ':robot_face:'
+        title: 'Agent Alert: {{ .GroupLabels.alertname }}'
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+        text: |
+          {{ range .Alerts }}
+          *Agent:* {{ .Labels.agent_type }}/{{ .Labels.agent_id }}
+          *Issue:* {{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          
+          *Instance:* {{ .Labels.instance }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          {{ end }}
+  
+  # Performance team receiver  
+  - name: 'nis-performance-team'
+    slack_configs:
+      - channel: '#nis-performance'
+        username: 'NIS Performance Monitor'
+        icon_emoji: ':chart_with_upwards_trend:'
+        title: 'Performance Alert: {{ .GroupLabels.alertname }}'
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+  
+  # Security team receiver
+  - name: 'nis-security-team'
+    email_configs:
+      - to: 'security@example.com, nis-team@example.com'
+        subject: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          🔒 SECURITY ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          
+          IMMEDIATE ACTION REQUIRED
+          {{ end }}
+    
+    slack_configs:
+      - channel: '#security-alerts'
+        username: 'NIS Security Monitor'
+        icon_emoji: ':shield:'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+
+# Inhibition rules - prevent duplicate alerts
+inhibit_rules:
+  # If system is down, don't send component alerts
+  - source_match:
+      severity: 'critical'
+      alertname: 'NISSystemDown'
+    target_match_re:
+      service: 'nis-.*'
+    equal: ['instance']
+  
+  # If agent is down, don't send performance alerts for that agent
+  - source_match:
+      severity: 'critical'
+      category: 'agent'
+    target_match:
+      category: 'performance'
+    equal: ['agent_id']
+  
+  # If high severity alert is firing, suppress lower severity for same service
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'medium'
+    equal: ['service', 'instance']
+
+# Silence configuration
+silences:
+  # Example: Maintenance window
+  # - comment: "Scheduled maintenance"
+  #   createdBy: "admin"
+  #   startsAt: "2024-01-20T10:00:00Z"
+  #   endsAt: "2024-01-20T12:00:00Z"
+  #   matchers:
+  #     - name: "instance"
+  #       value: "nis-prod-01"

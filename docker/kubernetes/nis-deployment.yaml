@@ -1,0 +1,309 @@
+# NIS TOOLKIT SUIT v3.2.1 - Kubernetes Deployment
+# Production-ready Kubernetes configuration with autoscaling
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nis-toolkit
+  labels:
+    name: nis-toolkit
+    version: v3.2.1
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nis-config
+  namespace: nis-toolkit
+data:
+  NIS_ENVIRONMENT: "kubernetes"
+  NIS_LOG_LEVEL: "INFO"
+  REDIS_HOST: "redis-service"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+  ENABLE_MONITORING: "true"
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nis-secrets
+  namespace: nis-toolkit
+type: Opaque
+data:
+  # Base64 encoded secrets
+  database-password: bmlzLXBhc3N3b3JkLTIwMjQ=  # nis-password-2024
+  api-key: bmlzLWFwaS1rZXktMjAyNA==             # nis-api-key-2024
+
+---
+# NIS Core Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nis-core
+  namespace: nis-toolkit
+  labels:
+    app: nis-core
+    version: v3.2.1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nis-core
+  template:
+    metadata:
+      labels:
+        app: nis-core
+        version: v3.2.1
+    spec:
+      containers:
+      - name: nis-core
+        image: nis-toolkit:v3.2.1
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: nis-config
+        - secretRef:
+            name: nis-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: nis-data
+          mountPath: /app/data
+        - name: nis-logs
+          mountPath: /app/logs
+      volumes:
+      - name: nis-data
+        persistentVolumeClaim:
+          claimName: nis-data-pvc
+      - name: nis-logs
+        persistentVolumeClaim:
+          claimName: nis-logs-pvc
+
+---
+# NIS Core Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nis-core-service
+  namespace: nis-toolkit
+  labels:
+    app: nis-core
+spec:
+  selector:
+    app: nis-core
+  ports:
+  - port: 80
+    targetPort: 8000
+    name: http
+  type: ClusterIP
+
+---
+# NIS Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nis-agent
+  namespace: nis-toolkit
+  labels:
+    app: nis-agent
+    version: v3.2.1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nis-agent
+  template:
+    metadata:
+      labels:
+        app: nis-agent
+        version: v3.2.1
+    spec:
+      containers:
+      - name: nis-agent
+        image: nis-toolkit:v3.2.1
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: nis-config
+        env:
+        - name: NIS_ROLE
+          value: "agent"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# NIS Agent Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nis-agent-service
+  namespace: nis-toolkit
+spec:
+  selector:
+    app: nis-agent
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: nis-toolkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: nis-toolkit
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+# Horizontal Pod Autoscaler for NIS Core
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nis-core-hpa
+  namespace: nis-toolkit
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nis-core
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nis-ingress
+  namespace: nis-toolkit
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - nis-toolkit.local
+    secretName: nis-tls-secret
+  rules:
+  - host: nis-toolkit.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nis-core-service
+            port:
+              number: 80
+      - path: /api/agent
+        pathType: Prefix
+        backend:
+          service:
+            name: nis-agent-service
+            port:
+              number: 80
+
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nis-data-pvc
+  namespace: nis-toolkit
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nis-logs-pvc
+  namespace: nis-toolkit
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

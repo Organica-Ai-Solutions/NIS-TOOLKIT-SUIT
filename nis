@@ -1,0 +1,596 @@
+#!/usr/bin/env python3
+"""
+NIS TOOLKIT SUIT v3.2.1 - Command Line Interface
+
+A comprehensive CLI for NIS development, deployment, and management.
+"""
+
+import os
+import sys
+import argparse
+import logging
+import subprocess
+from pathlib import Path
+
+# Ensure we have required packages
+try:
+    import yaml
+except ImportError:
+    print("Installing required packages...")
+    subprocess.run([sys.executable, '-m', 'pip', 'install', 'pyyaml'])
+    import yaml
+
+def setup_logging(level=logging.INFO):
+    """Setup basic logging"""
+    logging.basicConfig(
+        level=level,
+        format='%(levelname)s: %(message)s'
+    )
+
+def success(msg):
+    """Log success message"""
+    print(f"✅ {msg}")
+
+def error(msg):
+    """Log error message"""
+    print(f"❌ {msg}")
+
+def info(msg):
+    """Log info message"""
+    print(f"ℹ️  {msg}")
+
+def step(msg):
+    """Log step message"""
+    print(f"🚀 {msg}")
+
+def header(msg):
+    """Print header"""
+    print(f"\n{msg}")
+    print("=" * len(msg))
+
+class NISCommand:
+    """Base NIS command"""
+    
+    def __init__(self):
+        self.project_root = self.find_project_root()
+    
+    def find_project_root(self):
+        """Find project root"""
+        current = Path.cwd()
+        markers = ["nis.config.yaml", "nis.config.json", "VERSION", "nis-core-toolkit"]
+        
+        while current != current.parent:
+            for marker in markers:
+                if (current / marker).exists():
+                    return current
+            current = current.parent
+        return None
+    
+    def run_cmd(self, cmd, cwd=None):
+        """Run shell command"""
+        try:
+            subprocess.run(cmd, shell=True, check=True, cwd=cwd)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+def cmd_doctor(args):
+    """Run system diagnostics"""
+    header("🏥 NIS System Doctor")
+    
+    cmd = NISCommand()
+    issues = 0
+    
+    # Check Python version
+    if sys.version_info >= (3, 8):
+        success(f"Python {sys.version_info.major}.{sys.version_info.minor}")
+    else:
+        error(f"Python {sys.version_info.major}.{sys.version_info.minor} (3.8+ required)")
+        issues += 1
+    
+    # Check Docker
+    if subprocess.run(['docker', '--version'], capture_output=True).returncode == 0:
+        success("Docker available")
+    else:
+        error("Docker not available")
+        issues += 1
+    
+    # Check project structure
+    if cmd.project_root:
+        success(f"NIS project detected: {cmd.project_root}")
+    else:
+        info("Not in a NIS project directory")
+    
+    if issues == 0:
+        success("🎉 System is healthy!")
+        return 0
+    else:
+        error(f"Found {issues} issues")
+        return 1
+
+def cmd_create(args):
+    """Create new project or component"""
+    header("🏗️  NIS Project Creator")
+    
+    if args.type == 'project':
+        project_name = args.name
+        step(f"Creating project: {project_name}")
+        
+        # Create basic project structure
+        project_path = Path(project_name)
+        if project_path.exists():
+            error(f"Directory already exists: {project_name}")
+            return 1
+        
+        # Create directories
+        dirs = [
+            "src", "src/agents", "tests", "docs", "examples"
+        ]
+        for d in dirs:
+            (project_path / d).mkdir(parents=True, exist_ok=True)
+        
+        # Create main.py
+        main_content = f'''#!/usr/bin/env python3
+"""
+{project_name} - NIS Protocol Application
+"""
+
+import asyncio
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def main():
+    logger.info("Starting {project_name}")
+    return 0
+
+if __name__ == "__main__":
+    exit_code = asyncio.run(main())
+    exit(exit_code)
+'''
+        (project_path / "main.py").write_text(main_content)
+        
+        # Create requirements.txt
+        requirements = """fastapi>=0.116.0
+uvicorn>=0.29.0
+pydantic>=2.9.0
+numpy>=1.24.0
+"""
+        (project_path / "requirements.txt").write_text(requirements)
+        
+        # Create config
+        config = {
+            'project_name': project_name,
+            'nis_version': '3.2.1',
+            'environment': 'development'
+        }
+        with open(project_path / "nis.config.yaml", 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+        
+        # Create README
+        readme = f"""# {project_name}
+
+NIS Protocol project.
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+"""
+        (project_path / "README.md").write_text(readme)
+        
+        success(f"Created project: {project_name}")
+        info(f"Next steps:")
+        info(f"  cd {project_name}")
+        info(f"  pip install -r requirements.txt") 
+        info(f"  python main.py")
+        
+        return 0
+    
+    return 0
+
+def cmd_deploy(args):
+    """Deploy application"""
+    header("🚀 NIS Deployment")
+    
+    cmd = NISCommand()
+    if not cmd.project_root:
+        error("Not in a NIS project directory")
+        return 1
+    
+    if args.target == 'docker':
+        step("Deploying with Docker...")
+        
+        # Check if docker-compose exists
+        compose_file = cmd.project_root / "docker-compose.yml"
+        if not compose_file.exists():
+            error("docker-compose.yml not found")
+            info("Run 'nis create docker-config' first")
+            return 1
+        
+        # Run docker-compose
+        if cmd.run_cmd("docker-compose up -d", cwd=cmd.project_root):
+            success("Docker deployment completed!")
+            info("Access URLs:")
+            info("  Core Service: http://localhost:8000")
+            info("  Monitoring:   http://localhost:3000")
+            return 0
+        else:
+            error("Docker deployment failed")
+            return 1
+    
+    elif args.target == 'local':
+        step("Starting local development server...")
+        
+        # Install dependencies
+        req_file = cmd.project_root / "requirements.txt"
+        if req_file.exists():
+            step("Installing dependencies...")
+            if not cmd.run_cmd(f"{sys.executable} -m pip install -r requirements.txt", cwd=cmd.project_root):
+                error("Failed to install dependencies")
+                return 1
+        
+        # Run main.py
+        main_file = cmd.project_root / "main.py"
+        if main_file.exists():
+            step("Starting application...")
+            return subprocess.run([sys.executable, "main.py"], cwd=cmd.project_root).returncode
+        else:
+            error("main.py not found")
+            return 1
+    
+    return 0
+
+def cmd_monitor(args):
+    """Launch monitoring and observability tools"""
+    header("📊 NIS Monitoring & Observability")
+    
+    cmd = NISCommand()
+    if not cmd.project_root:
+        error("Not in a NIS project directory")
+        return 1
+    
+    if hasattr(args, 'dashboard') and args.dashboard:
+        step("Opening monitoring dashboard...")
+        info("🎯 System Overview:     http://localhost:3000/d/nis-system-overview")
+        info("🤖 Agent Performance:   http://localhost:3000/d/nis-agent-performance") 
+        info("📊 Prometheus:          http://localhost:9090")
+        info("📈 Grafana:             http://localhost:3000 (admin/admin)")
+        info("🔍 Health Checks:       http://localhost:8000/health")
+        
+        # Try to open browser
+        try:
+            import webbrowser
+            webbrowser.open("http://localhost:3000")
+        except:
+            pass
+        
+        return 0
+    
+    if hasattr(args, 'health') and args.health:
+        step("Running comprehensive health checks...")
+        
+        # Run health monitor
+        try:
+            import asyncio
+            sys.path.append(str(cmd.project_root / "monitoring"))
+            from health.health_monitor import get_health_monitor
+            
+            async def run_health_check():
+                monitor = get_health_monitor()
+                
+                # Run all checks once manually
+                for check_name, check in monitor.checks.items():
+                    if check.enabled:
+                        await monitor._run_check(check)
+                
+                # Get system health after running checks
+                health = monitor.get_system_health()
+                
+                print(f"\n🏥 System Health Status: {health.status.value.upper()}")
+                print(f"⏱️  System Uptime: {health.uptime:.1f}s")
+                print(f"📊 Check Summary: {health.summary}")
+                print("\n📋 Detailed Results:")
+                
+                for name, result in health.checks.items():
+                    status_emoji = {
+                        "healthy": "✅",
+                        "degraded": "⚠️ ",
+                        "unhealthy": "❌",
+                        "unknown": "❓"
+                    }.get(result.status.value, "❓")
+                    
+                    print(f"  {status_emoji} {name}: {result.message}")
+                    if result.details:
+                        for key, value in result.details.items():
+                            print(f"     • {key}: {value}")
+                
+                return 0 if health.status.value != "unhealthy" else 1
+            
+            return asyncio.run(run_health_check())
+            
+        except Exception as e:
+            error(f"Health check failed: {e}")
+            return 1
+    
+    if hasattr(args, 'metrics') and args.metrics:
+        step("Starting metrics server...")
+        
+        try:
+            sys.path.append(str(cmd.project_root / "monitoring"))
+            from nis_metrics import start_metrics_server
+            
+            port = getattr(args, 'port', 8000)
+            if start_metrics_server(port):
+                success(f"📊 Metrics server started on port {port}")
+                info(f"🎯 Metrics endpoint: http://localhost:{port}/metrics")
+                info("Press Ctrl+C to stop")
+                
+                import signal
+                def signal_handler(sig, frame):
+                    info("\n🛑 Metrics server stopped")
+                    sys.exit(0)
+                
+                signal.signal(signal.SIGINT, signal_handler)
+                signal.pause()
+            else:
+                error("Failed to start metrics server")
+                return 1
+        except Exception as e:
+            error(f"Failed to start metrics server: {e}")
+            return 1
+    
+    if hasattr(args, 'logs') and args.logs:
+        step("Showing recent logs...")
+        
+        logs_dir = cmd.project_root / "logs"
+        if not logs_dir.exists():
+            info("No logs directory found. Starting log collection...")
+            logs_dir.mkdir(exist_ok=True)
+            
+            # Setup logging
+            try:
+                sys.path.append(str(cmd.project_root / "monitoring" / "logs"))
+                from nis_logging import setup_logging, LogConfig
+                
+                config = LogConfig(output_dir=str(logs_dir))
+                logger_instance = setup_logging(config)
+                
+                info("Log collection started")
+                info(f"📁 Logs directory: {logs_dir}")
+                info("📄 Main log: nis-toolkit.log") 
+                info("🚨 Error log: nis-toolkit-errors.log")
+                info("🤖 Agent log: nis-toolkit-agents.log")
+                info("⚡ Performance log: nis-toolkit-performance.log")
+                
+            except Exception as e:
+                error(f"Failed to setup logging: {e}")
+                return 1
+        else:
+            # Show recent logs
+            main_log = logs_dir / "nis-toolkit.log"
+            if main_log.exists():
+                info(f"📄 Recent logs from {main_log}:")
+                try:
+                    cmd.run_cmd(f"tail -20 {main_log}")
+                except:
+                    pass
+    
+    # Default: show monitoring overview
+    step("NIS Monitoring Overview")
+    info("Available monitoring commands:")
+    info("  --dashboard    Open monitoring dashboards")
+    info("  --health       Run comprehensive health checks")  
+    info("  --metrics      Start Prometheus metrics server")
+    info("  --logs         Show recent logs")
+    info("")
+    info("🐳 Docker Monitoring Stack:")
+    info("  docker-compose up prometheus grafana  # Start monitoring")
+    info("  docker-compose -f docker-compose.test.yml up  # Full test stack")
+    
+    return 0
+
+def cmd_test(args):
+    """Run comprehensive testing suite"""
+    header("🧪 NIS Comprehensive Testing Framework")
+    
+    cmd = NISCommand()
+    if not cmd.project_root:
+        error("Not in a NIS project directory")
+        return 1
+    
+    # Check if advanced test runner is available
+    test_runner_path = cmd.project_root / "testing" / "test_runner.py"
+    if test_runner_path.exists() and hasattr(args, 'framework') and args.framework:
+        step("Using advanced test framework...")
+        
+        # Build test runner command
+        test_cmd = [sys.executable, str(test_runner_path)]
+        
+        if hasattr(args, 'types') and args.types:
+            test_cmd.extend(['--types'] + args.types)
+        
+        if hasattr(args, 'verbose') and args.verbose:
+            test_cmd.append('--verbose')
+            
+        if hasattr(args, 'fail_fast') and args.fail_fast:
+            test_cmd.append('--fail-fast')
+        
+        # Run comprehensive test suite
+        try:
+            result = subprocess.run(test_cmd, cwd=cmd.project_root)
+            return result.returncode
+        except Exception as e:
+            error(f"Advanced test framework failed: {e}")
+            # Fall back to basic testing
+    
+    # Basic testing fallback
+    step("Using basic test runner...")
+    
+    # Check if tests exist
+    test_dirs = ["tests", "nis-core-toolkit/tests", "nis-agent-toolkit/tests"]
+    found_tests = False
+    
+    for test_dir in test_dirs:
+        if (cmd.project_root / test_dir).exists():
+            found_tests = True
+            break
+    
+    if not found_tests:
+        error("No test directories found")
+        info("Expected: tests/, nis-core-toolkit/tests/, or nis-agent-toolkit/tests/")
+        return 1
+    
+    # Install required packages
+    required_packages = ['pytest', 'pytest-cov', 'coverage']
+    if hasattr(args, 'benchmark') and args.benchmark:
+        required_packages.append('pytest-benchmark')
+    
+    for package in required_packages:
+        try:
+            __import__(package.replace('-', '_'))
+        except ImportError:
+            step(f"Installing {package}...")
+            subprocess.run([sys.executable, '-m', 'pip', 'install', package])
+    
+    # Build test command
+    test_cmd = [sys.executable, '-m', 'pytest']
+    
+    # Add test directories
+    for test_dir in test_dirs:
+        test_path = cmd.project_root / test_dir
+        if test_path.exists():
+            test_cmd.append(str(test_path))
+    
+    # Add coverage if requested
+    if hasattr(args, 'coverage') and args.coverage:
+        test_cmd.extend([
+            '--cov=nis-core-toolkit/src',
+            '--cov=nis-agent-toolkit/core', 
+            '--cov-report=html',
+            '--cov-report=term-missing',
+            '--cov-report=xml'
+        ])
+    
+    # Add benchmarks if requested
+    if hasattr(args, 'benchmark') and args.benchmark:
+        test_cmd.extend(['--benchmark-only', '--benchmark-histogram'])
+    
+    # Add verbose output
+    if hasattr(args, 'verbose') and args.verbose:
+        test_cmd.append('-v')
+    
+    # Add fail-fast
+    if hasattr(args, 'fail_fast') and args.fail_fast:
+        test_cmd.append('-x')
+    
+    # Run tests
+    try:
+        info(f"Running command: {' '.join(test_cmd)}")
+        result = subprocess.run(test_cmd, cwd=cmd.project_root)
+        
+        if result.returncode == 0:
+            success("🎉 All tests passed!")
+            
+            # Show coverage summary if available
+            coverage_html = cmd.project_root / "htmlcov" / "index.html"
+            if coverage_html.exists():
+                info(f"📊 Coverage report: file://{coverage_html}")
+                
+            return 0
+        else:
+            error(f"❌ Tests failed with exit code {result.returncode}")
+            return result.returncode
+            
+    except Exception as e:
+        error(f"Test execution failed: {e}")
+        return 1
+
+def main():
+    """Main CLI entry point"""
+    parser = argparse.ArgumentParser(
+        prog='nis',
+        description='NIS TOOLKIT SUIT v3.2.1 - Universal AI Development CLI'
+    )
+    
+    parser.add_argument('--version', action='version', version='NIS TOOLKIT SUIT v3.2.1')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # Doctor command
+    doctor_parser = subparsers.add_parser('doctor', help='System diagnostics')
+    
+    # Create command  
+    create_parser = subparsers.add_parser('create', help='Create project or component')
+    create_subparsers = create_parser.add_subparsers(dest='type', help='What to create')
+    
+    project_parser = create_subparsers.add_parser('project', help='Create new project')
+    project_parser.add_argument('name', help='Project name')
+    
+    # Deploy command
+    deploy_parser = subparsers.add_parser('deploy', help='Deploy application')
+    deploy_subparsers = deploy_parser.add_subparsers(dest='target', help='Deployment target')
+    
+    docker_parser = deploy_subparsers.add_parser('docker', help='Deploy with Docker')
+    local_parser = deploy_subparsers.add_parser('local', help='Run locally')
+    
+    # Monitor command
+    monitor_parser = subparsers.add_parser('monitor', help='Monitoring and observability tools')
+    monitor_parser.add_argument('--dashboard', action='store_true', help='Open monitoring dashboards')
+    monitor_parser.add_argument('--health', action='store_true', help='Run health checks')
+    monitor_parser.add_argument('--metrics', action='store_true', help='Start metrics server')
+    monitor_parser.add_argument('--logs', action='store_true', help='Show recent logs')
+    monitor_parser.add_argument('--port', type=int, default=8000, help='Metrics server port')
+    
+    # Test command
+    test_parser = subparsers.add_parser('test', help='Run comprehensive testing suite')
+    test_parser.add_argument('--coverage', action='store_true', help='Generate coverage report')
+    test_parser.add_argument('--benchmark', action='store_true', help='Run performance benchmarks')
+    test_parser.add_argument('--framework', action='store_true', help='Use advanced test framework')
+    test_parser.add_argument('--types', '-t', nargs='+',
+                            choices=['unit', 'integration', 'coverage', 'security', 'quality', 'benchmarks'],
+                            help='Test types to run (with --framework)')
+    test_parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    test_parser.add_argument('--fail-fast', '-x', action='store_true', help='Stop on first failure')
+    
+    args = parser.parse_args()
+    
+    if args.verbose:
+        setup_logging(logging.DEBUG)
+    else:
+        setup_logging(logging.INFO)
+    
+    # Show help if no command
+    if not args.command:
+        parser.print_help()
+        return 0
+    
+    # Execute command
+    try:
+        if args.command == 'doctor':
+            return cmd_doctor(args)
+        elif args.command == 'create':
+            return cmd_create(args)
+        elif args.command == 'deploy':
+            return cmd_deploy(args)
+        elif args.command == 'monitor':
+            return cmd_monitor(args)
+        elif args.command == 'test':
+            return cmd_test(args)
+        else:
+            error(f"Unknown command: {args.command}")
+            return 1
+    except KeyboardInterrupt:
+        info("\n🛑 Operation cancelled")
+        return 130
+    except Exception as e:
+        error(f"Command failed: {e}")
+        return 1
+
+if __name__ == '__main__':
+    exit_code = main()
+    sys.exit(exit_code)
