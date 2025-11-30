@@ -83,7 +83,7 @@ pynvml>=11.0.0
 # ===== ADDITIONAL ML PACKAGES =====
 scikit-learn>=1.3.0,<2.0.0
 datasets>=2.10.0,<3.0.0
-accelerate>=0.20.0,<1.0.0
+accelerate>=0.20.0,<2.0.0
 hnswlib>=0.8.0,<1.0.0
 
 # Duplicate removed - using first instance above
