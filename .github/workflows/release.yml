@@ -106,7 +106,7 @@ jobs:
           python -m build || echo "Package build skipped"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dist
           path: nis-core-toolkit/dist/
