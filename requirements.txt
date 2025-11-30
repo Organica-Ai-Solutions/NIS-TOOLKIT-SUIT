@@ -93,8 +93,8 @@ hnswlib>=0.8.0,<1.0.0
 # nemo_toolkit[all]>=2.4.0      # Enable for full NVIDIA NeMo integration
 
 # ===== DEVELOPMENT AND TESTING =====
-pytest>=7.0.0,<8.0.0
-pytest-asyncio>=0.21.0,<1.0.0
+pytest>=7.0.0,<10.0.0
+pytest-asyncio>=0.21.0,<2.0.0
 
 # ===== SECURITY AND AUTHENTICATION (STABLE SECURE VERSIONS) =====
 cryptography>=43.0.0,<50.0.0
