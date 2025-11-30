@@ -111,7 +111,7 @@ resampy>=0.4.0,<1.0.0
 # torch, torchaudio already defined above
 # transformers already defined above
 # accelerate already defined above
-huggingface_hub>=0.15.0,<1.0.0
+huggingface_hub>=0.15.0,<2.0.0
 
 # ===== HIGH-PERFORMANCE AUDIO PROCESSING =====
 # Faster-whisper for optimized STT with <500ms latency
