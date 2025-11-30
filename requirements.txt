@@ -57,7 +57,7 @@ torchvision>=0.15.0,<1.0.0
 torchaudio>=2.0.0,<3.0.0
 
 # ===== TENSORFLOW/KERAS (SECURITY UPDATED) =====
-tensorflow==2.15.1
+tensorflow==2.20.0
 tf-keras==2.15.1
 # ⚠️ SECURITY WARNING: DO NOT INSTALL keras 2.15.0
 # keras 2.15.0 has 2 CRITICAL vulnerabilities (GHSA-cjgq-5qmw-rcj6, GHSA-36fq-jgmw-4r9c)
@@ -68,7 +68,7 @@ tf-keras==2.15.1
 transformers>=4.36.0,<5.0.0
 tokenizers>=0.15.0,<1.0.0
 tiktoken>=0.5.0,<1.0.0
-openai>=1.0.0,<2.0.0
+openai>=1.0.0,<3.0.0
 
 # ===== LANGCHAIN ECOSYSTEM =====
 langchain>=0.2.0
