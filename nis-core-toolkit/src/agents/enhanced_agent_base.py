@@ -1,11 +1,11 @@
 """
-NIS Protocol v3.2.1 - Enhanced Agent Base Class
+NIS Protocol v4.0.0 - Enhanced Agent Base Class
 
 This module provides a comprehensive base class for all NIS Protocol agents
 with integrated Provider Router, Enhanced Consciousness, MCP Protocol,
 and advanced multi-agent collaboration capabilities.
 
-v3.2.1 Enhanced Features:
+v4.0.0 Enhanced Features:
 - Dynamic Provider Router for intelligent AI model routing
 - Enhanced consciousness with introspection capabilities
 - MCP (Model Context Protocol) integration
@@ -79,14 +79,14 @@ from src.utils.integrity_metrics import (
 from src.llm.llm_manager import LLMManager
 from src.utils.env_config import env_config
 
-# v3.2.1 New Components
+# v4.0.0 New Components
 try:
     from src.core.provider_router import ProviderRouter, RoutingRequest, RoutingResult
     from src.agents.consciousness.enhanced_conscious_agent import EnhancedConsciousAgent
     V321_FEATURES_AVAILABLE = True
 except ImportError:
     V321_FEATURES_AVAILABLE = False
-    logger.warning("v3.2.1 features not available - running in compatibility mode")
+    logger.warning("v4.0.0 features not available - running in compatibility mode")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

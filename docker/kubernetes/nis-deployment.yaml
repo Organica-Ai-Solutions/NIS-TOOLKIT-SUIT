@@ -1,4 +1,4 @@
-# NIS TOOLKIT SUIT v3.2.1 - Kubernetes Deployment
+# NIS TOOLKIT SUIT v4.0.0 - Kubernetes Deployment
 # Production-ready Kubernetes configuration with autoscaling
 
 apiVersion: v1
@@ -7,7 +7,7 @@ metadata:
   name: nis-toolkit
   labels:
     name: nis-toolkit
-    version: v3.2.1
+    version: v4.0.0
 
 ---
 # ConfigMap for application configuration
@@ -45,7 +45,7 @@ metadata:
   namespace: nis-toolkit
   labels:
     app: nis-core
-    version: v3.2.1
+    version: v4.0.0
 spec:
   replicas: 3
   selector:
@@ -55,11 +55,11 @@ spec:
     metadata:
       labels:
         app: nis-core
-        version: v3.2.1
+        version: v4.0.0
     spec:
       containers:
       - name: nis-core
-        image: nis-toolkit:v3.2.1
+        image: nis-toolkit:v4.0.0
         ports:
         - containerPort: 8000
           name: http
@@ -127,7 +127,7 @@ metadata:
   namespace: nis-toolkit
   labels:
     app: nis-agent
-    version: v3.2.1
+    version: v4.0.0
 spec:
   replicas: 2
   selector:
@@ -137,11 +137,11 @@ spec:
     metadata:
       labels:
         app: nis-agent
-        version: v3.2.1
+        version: v4.0.0
     spec:
       containers:
       - name: nis-agent
-        image: nis-toolkit:v3.2.1
+        image: nis-toolkit:v4.0.0
         ports:
         - containerPort: 8000
         envFrom:

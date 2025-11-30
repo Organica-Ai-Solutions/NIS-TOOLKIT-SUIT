@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS TOOLKIT SUIT v3.2.1 - Comprehensive Metrics Collection
+NIS TOOLKIT SUIT v4.0.0 - Comprehensive Metrics Collection
 Prometheus metrics for system monitoring, agent performance, and observability
 """
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS TOOLKIT SUIT v3.2.1 - Comprehensive Health Monitoring
+NIS TOOLKIT SUIT v4.0.0 - Comprehensive Health Monitoring
 Automated health checks, service monitoring, and system diagnostics
 """
 

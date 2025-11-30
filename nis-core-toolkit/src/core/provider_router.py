@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🎯 NIS Protocol v3.2 - Dynamic Provider Router
+🎯 NIS Protocol v4.0 - Dynamic Provider Router
 Intelligent routing of requests to optimal AI providers based on capabilities, cost, and performance
 
 Features:

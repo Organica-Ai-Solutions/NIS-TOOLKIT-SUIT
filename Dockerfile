@@ -1,11 +1,11 @@
-# NIS TOOLKIT SUIT v3.2.1 - Production Dockerfile
+# NIS TOOLKIT SUIT v4.0.0 - Production Dockerfile
 # Multi-stage build for optimized container size and security
 
 FROM python:3.11-slim AS base
 
 # Metadata
 LABEL maintainer="NIS Protocol Team"
-LABEL version="3.2.1"
+LABEL version="4.0.0"
 LABEL description="NIS TOOLKIT SUIT - Universal AI Development Framework"
 
 # Security: Create non-root user
@@ -27,11 +27,12 @@ WORKDIR /app
 
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
+COPY constraints.txt .
 COPY nis-core-toolkit/requirements.txt ./nis-core-toolkit/
 
 # Upgrade pip and install Python dependencies in one optimized layer
 RUN pip install --upgrade --no-cache-dir pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt -c constraints.txt && \
     pip cache purge
 
 #=============================================================================

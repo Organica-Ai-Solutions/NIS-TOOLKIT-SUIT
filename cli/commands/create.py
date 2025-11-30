@@ -486,7 +486,7 @@ if __name__ == "__main__":
     
     def _get_requirements_template(self, template: str) -> str:
         """Get requirements.txt template content"""
-        base_requirements = """# NIS TOOLKIT SUIT v3.2.1 - Core Dependencies
+        base_requirements = """# NIS TOOLKIT SUIT v4.0.0 - Core Dependencies
 fastapi>=0.116.0,<0.120.0
 uvicorn[standard]>=0.29.0,<0.35.0
 pydantic>=2.9.0,<3.0.0

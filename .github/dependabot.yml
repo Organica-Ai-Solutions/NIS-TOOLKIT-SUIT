@@ -1,0 +1,80 @@
+# Dependabot configuration
+# Automated dependency updates for security and maintenance
+
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Organica-Ai-Solutions"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps(python):"
+    groups:
+      security:
+        patterns:
+          - "cryptography"
+          - "certifi"
+          - "urllib3"
+          - "requests"
+        update-types:
+          - "patch"
+          - "minor"
+      ai-ml:
+        patterns:
+          - "torch*"
+          - "tensorflow*"
+          - "transformers"
+          - "langchain*"
+          - "openai"
+          - "anthropic"
+      testing:
+        patterns:
+          - "pytest*"
+          - "coverage"
+          - "flake8"
+          - "black"
+          - "mypy"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(actions):"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker):"
+
+  # Docker Compose services
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"

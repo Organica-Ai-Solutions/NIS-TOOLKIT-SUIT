@@ -1,4 +1,4 @@
-# NIS TOOLKIT SUIT v3.2.1 - Testing Environment
+# NIS TOOLKIT SUIT v4.0.0 - Testing Environment
 # Isolated testing environment with all necessary services
 
 version: '3.8'

@@ -17,6 +17,6 @@ class UpdateCommand(BaseCommand):
     def execute(self, args) -> int:
         header("🔄 NIS Update Manager")
         step("Checking for updates...")
-        info("Current version: v3.2.1")
+        info("Current version: v4.0.0")
         success("System is up to date!")
         return 0

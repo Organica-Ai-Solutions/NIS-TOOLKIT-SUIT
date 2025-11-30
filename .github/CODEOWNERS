@@ -1,0 +1,32 @@
+# CODEOWNERS - Define code ownership for automatic review requests
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything
+* @Organica-Ai-Solutions
+
+# Core toolkit
+/nis-core-toolkit/ @Organica-Ai-Solutions
+
+# Adapters (critical integration code)
+/nis-core-toolkit/src/adapters/ @Organica-Ai-Solutions
+
+# CI/CD configuration
+/.github/ @Organica-Ai-Solutions
+
+# Docker configuration
+/Dockerfile @Organica-Ai-Solutions
+/docker-compose*.yml @Organica-Ai-Solutions
+/docker/ @Organica-Ai-Solutions
+
+# Testing
+/testing/ @Organica-Ai-Solutions
+/tests/ @Organica-Ai-Solutions
+
+# Documentation
+/docs/ @Organica-Ai-Solutions
+*.md @Organica-Ai-Solutions
+
+# Security-sensitive files
+/requirements.txt @Organica-Ai-Solutions
+/constraints.txt @Organica-Ai-Solutions
+/.env* @Organica-Ai-Solutions

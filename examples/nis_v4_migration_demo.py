@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-NIS TOOLKIT SUIT v3.2.1 - Migration Demo
+NIS TOOLKIT SUIT v4.0.0 - Migration Demo
 
-This demo showcases the upgraded capabilities after migrating from v3.1 to v3.2.1:
+This demo showcases the upgraded capabilities after migrating from v3.1 to v4.0.0:
 - Dynamic Provider Router
 - Enhanced Consciousness
 - MCP Protocol Support
@@ -19,9 +19,9 @@ from typing import Dict, Any
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def demo_v321_features():
-    """Demonstrate new v3.2.1 features"""
-    print("🚀 NIS TOOLKIT SUIT v3.2.1 - Migration Demo")
+def demo_v4_features():
+    """Demonstrate new v4.0.0 features"""
+    print("🚀 NIS TOOLKIT SUIT v4.0.0 - Migration Demo")
     print("=" * 60)
     
     try:
@@ -104,12 +104,12 @@ def demo_v321_features():
         }
         print(f"   ✅ Edge configuration available: {edge_config}")
         
-        print("\n🎉 v3.2.1 Migration Demo Complete!")
+        print("\n🎉 v4.0.0 Migration Demo Complete!")
         print("Your NIS TOOLKIT SUIT has been successfully upgraded!")
         
     except ImportError as e:
         print(f"❌ Import error: {e}")
-        print("Some v3.2.1 features may not be available yet.")
+        print("Some v4.0.0 features may not be available yet.")
         
     except Exception as e:
         logger.error(f"Demo error: {e}")
@@ -154,7 +154,7 @@ def show_migration_summary():
         "✅ Security Fixes (15+ vulnerabilities)",
         "✅ Edge Computing Support (NEW)",
         "✅ Simplified Agent Interface",
-        "✅ Version tracking (v3.2.1)",
+        "✅ Version tracking (v4.0.0)",
         "✅ Examples updated"
     ]
     
@@ -162,17 +162,17 @@ def show_migration_summary():
         print(f"   {feature}")
     
     print(f"\n🔧 Backup Location: NIS-TOOLKIT-SUIT-v3.1-BACKUP")
-    print(f"📁 Updated Toolkit: NIS-TOOLKIT-SUIT (now v3.2.1)")
+    print(f"📁 Updated Toolkit: NIS-TOOLKIT-SUIT (now v4.0.0)")
 
 if __name__ == "__main__":
-    print("🌟 Welcome to NIS TOOLKIT SUIT v3.2.1!")
-    print("This demo showcases the migration from v3.1 to v3.2.1\n")
+    print("🌟 Welcome to NIS TOOLKIT SUIT v4.0.0!")
+    print("This demo showcases the migration from v3.1 to v4.0.0\n")
     
     # Show what was migrated
     show_migration_summary()
     
     # Demonstrate new features
-    demo_v321_features()
+    demo_v4_features()
     
     print("\n💡 Next Steps:")
     print("1. Run: pip install -r requirements.txt")

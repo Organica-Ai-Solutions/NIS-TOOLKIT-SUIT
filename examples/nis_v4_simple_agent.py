@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS Protocol v3.2 - Simple Agent Example
+NIS Protocol v4.0 - Simple Agent Example
 
 This example demonstrates how to create and use a basic NIS Protocol agent.
 """

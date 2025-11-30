@@ -1,0 +1,159 @@
+# NIS Protocol Adapters Test Suite
+# Tests all protocol adapters: NISv4, NeuroLinux, MCP, Flutter
+
+name: Test Adapters
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'nis-core-toolkit/src/adapters/**'
+      - 'examples/**'
+      - 'test_v4_integration.py'
+  pull_request:
+    paths:
+      - 'nis-core-toolkit/src/adapters/**'
+  workflow_dispatch:
+
+jobs:
+  test-adapters:
+    name: Test Protocol Adapters
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio aiohttp requests
+
+      - name: Test NISv4 Adapter syntax
+        run: |
+          python -m py_compile nis-core-toolkit/src/adapters/nis_v4_adapter.py
+          echo "✓ NISv4 Adapter syntax valid"
+
+      - name: Test NeuroLinux Adapter syntax
+        run: |
+          python -m py_compile nis-core-toolkit/src/adapters/neurolinux_adapter.py
+          echo "✓ NeuroLinux Adapter syntax valid"
+
+      - name: Test Flutter Config syntax
+        run: |
+          python -m py_compile nis-core-toolkit/src/adapters/flutter_client_config.py
+          echo "✓ Flutter Config syntax valid"
+
+      - name: Test MCP Adapter syntax
+        run: |
+          python -m py_compile nis-core-toolkit/src/adapters/mcp_adapter.py
+          echo "✓ MCP Adapter syntax valid"
+
+      - name: Run adapter integration test
+        run: python test_v4_integration.py
+
+      - name: Test adapter imports
+        run: |
+          cd nis-core-toolkit/src/adapters
+          python -c "
+          from flutter_client_config import FlutterClientConfig, create_flutter_config
+          from neurolinux_adapter import NeuroLinuxAdapter, create_neurolinux_adapter
+          
+          # Test Flutter config
+          config = create_flutter_config('http://localhost:8000')
+          assert config.api_base_url == 'http://localhost:8000'
+          print('✓ Flutter config works')
+          
+          # Test NeuroLinux adapter
+          adapter = create_neurolinux_adapter()
+          status = adapter.get_status()
+          assert 'connected' in status
+          print('✓ NeuroLinux adapter works')
+          
+          print('✓ All adapter imports successful!')
+          "
+
+      - name: Test example file
+        run: |
+          python -m py_compile examples/nis_v4_integration_example.py
+          echo "✓ Example file syntax valid"
+
+  test-with-mock-server:
+    name: Test with Mock Server
+    runs-on: ubuntu-latest
+    needs: test-adapters
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio respx httpx
+
+      - name: Run mock server tests
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'nis-core-toolkit/src/adapters')
+          from flutter_client_config import FlutterClientManager, create_flutter_config
+          
+          # Generate full config
+          config = create_flutter_config('http://mock-server:8000')
+          manager = FlutterClientManager(config)
+          full_config = manager.generate_client_config()
+          
+          # Verify config structure
+          assert 'version' in full_config
+          assert 'endpoints' in full_config
+          assert 'features' in full_config
+          assert full_config['version'] == '4.0.0'
+          assert len(full_config['endpoints']) >= 60
+          
+          print(f'✓ Config version: {full_config[\"version\"]}')
+          print(f'✓ Endpoints: {len(full_config[\"endpoints\"])}')
+          print(f'✓ Features: {len(full_config[\"features\"])}')
+          print('✓ All mock tests passed!')
+          "
+
+  report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [test-adapters, test-with-mock-server]
+    if: always()
+    
+    steps:
+      - name: Generate test report
+        run: |
+          echo "# Adapter Test Report" > report.md
+          echo "" >> report.md
+          echo "## Results" >> report.md
+          echo "- Adapter Tests: ${{ needs.test-adapters.result }}" >> report.md
+          echo "- Mock Server Tests: ${{ needs.test-with-mock-server.result }}" >> report.md
+          echo "" >> report.md
+          echo "## Adapters Tested" >> report.md
+          echo "- NISv4Adapter (NIS Protocol v4.0)" >> report.md
+          echo "- NeuroLinuxAdapter (Edge Robotics OS)" >> report.md
+          echo "- MCPAdapter (Model Context Protocol)" >> report.md
+          echo "- FlutterClientConfig (Desktop App)" >> report.md
+          cat report.md
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: adapter-test-report
+          path: report.md

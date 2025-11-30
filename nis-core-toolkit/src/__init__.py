@@ -5,7 +5,7 @@ This package provides the core components for building intelligent systems
 based on the neuro-inspired system protocol.
 """
 
-__version__ = "0.1.0"
+__version__ = "4.0.0"
 
 # Core components
 from src.core.agent import NISAgent, NISLayer

@@ -25,7 +25,7 @@ class NISConfig:
     debug: bool = True
     
     # NIS specific settings
-    nis_version: str = "3.2.1"
+    nis_version: str = "4.0.0"
     enable_consciousness: bool = True
     enable_provider_router: bool = True
     enable_edge_computing: bool = False

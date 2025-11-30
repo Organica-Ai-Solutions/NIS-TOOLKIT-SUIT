@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS TOOLKIT SUIT v3.2.1 - Master CLI
+NIS TOOLKIT SUIT v4.0.0 - Master CLI
 Universal command-line interface for NIS development, deployment, and management.
 
 Usage:
@@ -71,7 +71,7 @@ def create_parser():
     """Create the main CLI argument parser"""
     parser = argparse.ArgumentParser(
         prog='nis',
-        description='NIS TOOLKIT SUIT v3.2.1 - Universal AI Development CLI',
+        description='NIS TOOLKIT SUIT v4.0.0 - Universal AI Development CLI',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -89,7 +89,7 @@ For more information, visit: https://github.com/nis-protocol/toolkit
     parser.add_argument(
         '--version', 
         action='version',
-        version='NIS TOOLKIT SUIT v3.2.1'
+        version='NIS TOOLKIT SUIT v4.0.0'
     )
     
     parser.add_argument(

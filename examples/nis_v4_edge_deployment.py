@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS Protocol v3.2 - Edge Deployment Example
+NIS Protocol v4.0 - Edge Deployment Example
 
 This example shows how to deploy NIS Protocol on edge devices.
 """
@@ -62,7 +62,7 @@ def deploy_edge_agent():
 
 def main():
     """Main edge deployment workflow"""
-    print("🌐 NIS Protocol v3.2 - Edge Deployment")
+    print("🌐 NIS Protocol v4.0 - Edge Deployment")
     print("=" * 50)
     
     # Check requirements

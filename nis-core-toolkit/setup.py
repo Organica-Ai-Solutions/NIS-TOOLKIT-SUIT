@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="nis-core-toolkit",
-    version="1.0.0",
+    version="4.0.0",
     description="System-level developer toolkit for NIS Protocol multi-agent systems",
     author="Organica AI Solutions",
     python_requires=">=3.9",

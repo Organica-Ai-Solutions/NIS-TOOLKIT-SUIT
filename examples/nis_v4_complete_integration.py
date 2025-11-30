@@ -93,7 +93,7 @@ class NISv3IntegratedSystem:
         # Add consciousness reflection callback
         self.consciousness_interface.add_reflection_callback(self._on_consciousness_reflection)
         
-        print("✅ NIS v3.0 System initialized with:")
+        print("✅ NIS v4.0 System initialized with:")
         print("  🧠 Consciousness: Meta-cognitive processing enabled")
         print("  🧮 KAN: 95% interpretability threshold")
         print("  📊 Monitoring: Real-time consciousness tracking")

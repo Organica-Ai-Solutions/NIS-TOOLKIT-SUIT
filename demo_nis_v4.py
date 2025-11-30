@@ -211,7 +211,7 @@ async def demo_monitoring_capabilities():
 async def demo_complete_workflow():
     """Demo complete AGI workflow"""
     
-    print_header("Complete NIS v3.0 AGI Workflow")
+    print_header("Complete NIS v4.0 AGI Workflow")
     
     print("🚀 Starting complete AGI processing workflow...")
     
@@ -273,7 +273,7 @@ async def main():
         result = await demo_complete_workflow()
         
         # Final comparison
-        print_header("NIS v3.0 vs Traditional AI")
+        print_header("NIS v4.0 vs Traditional AI")
         
         comparison_data = [
             ("Interpretability", "95%", "15%"),
@@ -286,7 +286,7 @@ async def main():
         ]
         
         print("\n📊 Comparison Table:")
-        print(f"{'Feature':<25} {'NIS v3.0':<15} {'Traditional AI':<15}")
+        print(f"{'Feature':<25} {'NIS v4.0':<15} {'Traditional AI':<15}")
         print("-" * 55)
         for feature, nis_score, traditional_score in comparison_data:
             print(f"{feature:<25} {nis_score:<15} {traditional_score:<15}")
@@ -310,7 +310,7 @@ async def main():
         print("\n5. Deploy with consciousness monitoring:")
         print("   nis deploy --platform docker --agi-enabled")
         
-        print("\n🌟 Key advantages of NIS v3.0:")
+        print("\n🌟 Key advantages of NIS v4.0:")
         print("  • 95% interpretable reasoning (vs 15% for GPT-4)")
         print("  • Mathematical guarantees with convergence proofs")
         print("  • Consciousness-aware processing with bias detection")

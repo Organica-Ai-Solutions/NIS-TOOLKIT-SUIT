@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NIS TOOLKIT SUIT v3.2.1 - Comprehensive Test Runner
+NIS TOOLKIT SUIT v4.0.0 - Comprehensive Test Runner
 Advanced testing framework with coverage, benchmarking, security scanning, and quality analysis
 """
 
