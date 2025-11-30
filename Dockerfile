@@ -1,7 +1,7 @@
 # NIS TOOLKIT SUIT v4.0.0 - Production Dockerfile
 # Multi-stage build for optimized container size and security
 
-FROM python:3.11-slim AS base
+FROM python:3.14-slim AS base
 
 # Metadata
 LABEL maintainer="NIS Protocol Team"
@@ -100,7 +100,7 @@ CMD ["python", "-m", "nis-core-toolkit.cli.main"]
 #=============================================================================
 # Edge Computing Stage
 #=============================================================================
-FROM python:3.11-alpine AS edge
+FROM python:3.14-alpine AS edge
 
 # Metadata for edge
 LABEL variant="edge"
