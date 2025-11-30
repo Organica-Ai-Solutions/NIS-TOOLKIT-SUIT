@@ -199,7 +199,7 @@ jobs:
           git log --pretty=format:"- %s (%h)" -20 >> RELEASE_BODY.md || true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.validate.outputs.version }}
           name: NIS-TOOLKIT-SUIT ${{ needs.validate.outputs.version }}
