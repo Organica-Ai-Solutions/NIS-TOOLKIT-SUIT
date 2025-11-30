@@ -58,7 +58,7 @@ torchaudio>=2.0.0,<3.0.0
 
 # ===== TENSORFLOW/KERAS (SECURITY UPDATED) =====
 tensorflow==2.15.1
-tf-keras==2.15.1
+tf-keras==2.20.1
 # ⚠️ SECURITY WARNING: DO NOT INSTALL keras 2.15.0
 # keras 2.15.0 has 2 CRITICAL vulnerabilities (GHSA-cjgq-5qmw-rcj6, GHSA-36fq-jgmw-4r9c)
 # Use tf-keras instead for Keras functionality (included in tensorflow 2.15.1)
